@@ -1,0 +1,12 @@
+pylint
+serial~=0.0.97
+build
+pytest==7.1.0
+pytest-cov
+twine
+rich
+argparse
+click~=8.0.4
+prompt_toolkit
+Pygments~=2.11.2
+pyperclip
