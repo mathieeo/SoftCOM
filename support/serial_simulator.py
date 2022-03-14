@@ -4,9 +4,8 @@
     mainly used for testing without hardware.
 """
 import random
-import string
 
-lines = open('test_log.txt').read().splitlines()
+lines = open('test_log.txt', encoding='UTF-8').read().splitlines()
 
 
 def get_random_string():

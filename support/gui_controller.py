@@ -16,6 +16,7 @@ from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.lexers import PygmentsLexer
 from support.serial_simulator import random_text_generator  # pylint: disable=E0401
 from support.progress_bar import CustomProgressBar  # pylint: disable=E0401
+from support.version import __version__
 
 FIND_UNIQUE_KEY = '^/'
 FIND_STOP_UNIQUE_KEY = '&/'
@@ -39,8 +40,8 @@ def get_titlebar_text(custom_msg):
     :return:
     """
     return [
-        ("class:title", "Serial App Version - "),
-        ("class:title", custom_msg),
+        ("class:title bg:darkred", f" Serial App v{__version__} - "),
+        ("class:title bg:darkred", custom_msg + " "),
     ]
 
 
@@ -50,13 +51,13 @@ def get_options_text():
     :return:
     """
     return [
-        ("class:option", " [Control+Q]     - Quit \n"),
-        ("class:option", " [Control+D]     - Clear Log \n"),
-        ("class:option", " [Control+S]     - Export to file \n"),
-        ("class:option", " [Control+A]     - Copy All in clipboard \n"),
-        ("class:option", " [^/search_str]  - Highlight Pattern \n"),
-        ("class:option", " [&/search_str]  - Find abd Stop \n"),
-        ("class:option", " [Control+H]     - Help \n"),
+        ("class:title fg:darkred", " [Control+Q]     - Quit \n"),
+        ("class:title fg:yellow", " [Control+D]     - Clear Log \n"),
+        ("class:title fg:yellow", " [Control+S]     - Export to file \n"),
+        ("class:title fg:yellow", " [Control+A]     - Copy All in clipboard \n"),
+        ("class:title fg:cyan", " [^/search_str]  - Highlight Pattern \n"),
+        ("class:title fg:cyan", " [&/search_str]  - Find and Stop \n"),
+        ("class:title fg:green", " [Control+H]     - Help \n"),
     ]
 
 
@@ -87,7 +88,7 @@ class GuiController:
         self.left_window2 = Window(BufferControl(buffer=self.left_buffer2,
                                                  lexer=PygmentsLexer(VimLexer), ))
         self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(VimLexer)),
-                                   wrap_lines=True, )
+                                   wrap_lines=True)
         self.body = VSplit(
             [
                 HSplit(
@@ -160,6 +161,7 @@ class GuiController:
         self.connection_info = connection_info
         # self.left_buffer.insert_text(connection_info)
         self.left_buffer.on_text_changed += self.default_buffer_changed
+        self.right_buffer.on_text_insert += self.update_log_cursor
 
         # Creating an `Application` instance
         # This glues everything together.
@@ -182,6 +184,12 @@ class GuiController:
         self.read_thread.start()
         # Run the interface. (This runs the event loop until Ctrl-Q is pressed.)
         self.application.run()
+
+    def update_log_cursor(self):
+        """
+            update_log_curser
+        """
+        self.right_buffer.text += "\n"
 
     def default_buffer_changed(self, _):
         """
@@ -254,9 +262,9 @@ class GuiController:
         if HIGHLIGHT and HIGHLIGHT_STRING:
             found = incoming_packet.find(HIGHLIGHT_STRING)
             if found > 0:
-                incoming_packet = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\0\0' + \
-                                incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + \
-                                incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
+                incoming_packet = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\0\0' +\
+                                  incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + \
+                                  incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
 
         if HIGHLIGHT_STOP and HIGHLIGHT_STOP_STRING:
             found = incoming_packet.find(HIGHLIGHT_STOP_STRING)

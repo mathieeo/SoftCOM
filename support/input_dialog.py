@@ -5,6 +5,7 @@
 """
 from prompt_toolkit.shortcuts import input_dialog
 from prompt_toolkit.styles import Style
+
 # from prompt_toolkit.completion import Completer, Completion, FuzzyCompleter
 # from prompt_toolkit.completion import WordCompleter
 
@@ -18,6 +19,7 @@ class InputDialog:
     """
         InputDialog
     """
+
     def __init__(self, title, text, completer=None):
         """
             __init__
@@ -27,7 +29,7 @@ class InputDialog:
         :param text:
             Message for user input
         """
-        #todo completer not working
+        # todo completer not working
         self.result = input_dialog(title, text=text, style=example_style,
                                    completer=completer).run()
 
