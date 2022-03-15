@@ -7,6 +7,7 @@ import time
 from threading import Thread
 import pyperclip
 from pygments.lexers.textedit import VimLexer
+from pygments.lexers.console import PyPyLogLexer
 from prompt_toolkit.application import Application
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.key_binding import KeyBindings
@@ -25,13 +26,17 @@ UPDATE_LOG_FLAG = False
 CLEAR_LOG = False
 OUTPUT_LOG = ""
 LOG_FILE_COUNTER = 0
+CAPTURE_LOG_FILE_COUNTER = 0
 # highlight
 HIGHLIGHT = False
 HIGHLIGHT_STRING = ""
 # highlight stop
 HIGHLIGHT_STOP = False
 HIGHLIGHT_STOP_STRING = ""
-
+# capture
+CAPTURE = False
+CAPTURE_LOG = ""
+CAPTURE_MSG_FLAG = False
 
 def get_titlebar_text(custom_msg):
     """
@@ -50,11 +55,14 @@ def get_options_text():
 
     :return:
     """
+    global CAPTURE
     return [
         ("class:title fg:darkred", " [Control+Q]     - Quit \n"),
-        ("class:title fg:yellow", " [Control+D]     - Clear Log \n"),
+        ("class:title fg:yellow", " [Control+X]     - Clear Log \n"),
         ("class:title fg:yellow", " [Control+S]     - Export to file \n"),
-        ("class:title fg:yellow", " [Control+A]     - Copy All in clipboard \n"),
+        (f"class:title fg:yellow", " [Control+W]     - " + "Start/Stop capture \n"
+            if not CAPTURE else "Stop capture and Save\n"),
+        ("class:title fg:yellow", " [Control+C]     - Copy All in clipboard \n"),
         ("class:title fg:cyan", " [^/search_str]  - Highlight Pattern \n"),
         ("class:title fg:cyan", " [&/search_str]  - Find and Stop \n"),
         ("class:title fg:green", " [Control+H]     - Help \n"),
@@ -87,7 +95,7 @@ class GuiController:
                                                 lexer=PygmentsLexer(VimLexer), ), width=3)
         self.left_window2 = Window(BufferControl(buffer=self.left_buffer2,
                                                  lexer=PygmentsLexer(VimLexer), ))
-        self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(VimLexer)),
+        self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(PyPyLogLexer)),
                                    wrap_lines=True)
         self.body = VSplit(
             [
@@ -99,11 +107,8 @@ class GuiController:
                         # Horizontal separator.
                         Window(height=1, char="-", style="class:line"),
                         # The titlebar.
-                        Window(
-                            height=len(get_options_text()),
-                            content=FormattedTextControl(get_options_text()),
-                            align=WindowAlign.LEFT,
-                        ),
+                        Window(height=len(get_options_text()), content=FormattedTextControl(get_options_text()),
+                               align=WindowAlign.LEFT),
                         # Horizontal separator.
                         Window(height=1, char="-", style="class:line"),
 
@@ -120,11 +125,11 @@ class GuiController:
                         self.left_window2,
                         Window(height=1, char="-", style="class:line"),
                         Window(height=1, content=FormattedTextControl(
-                            [("class:line", "Integrated Software Technologies Inc. ")]),
+                            [("class:line", "Integrated Software Technologies Inc. fg=darkred")]),
                                style="class:title",
                                align=WindowAlign.CENTER),
                         Window(height=1, content=FormattedTextControl(
-                            [("class:line", "http://integratedsw.tech")]),
+                            [("class:line", "http://integratedsw.tech fg=darkred")]),
                                style="class:title",
                                align=WindowAlign.CENTER),
                         Window(height=1, char="-", style="class:line"),
@@ -258,11 +263,15 @@ class GuiController:
         global HIGHLIGHT_STOP
         global HIGHLIGHT_STOP_STRING
         global UPDATE_LOG_FLAG
+        global CAPTURE
+        global CAPTURE_LOG
+        global CAPTURE_MSG_FLAG
+        global CAPTURE_LOG_FILE_COUNTER
 
         if HIGHLIGHT and HIGHLIGHT_STRING:
             found = incoming_packet.find(HIGHLIGHT_STRING)
             if found > 0:
-                incoming_packet = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\0\0' +\
+                incoming_packet = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\0\0' + \
                                   incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + \
                                   incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
 
@@ -274,6 +283,20 @@ class GuiController:
                           incoming_packet[found + len(HIGHLIGHT_STOP_STRING):-1] + '\n\n\n'
                 self.right_buffer.text += raw_log
                 UPDATE_LOG_FLAG = False
+
+        if CAPTURE:
+            CAPTURE_LOG += incoming_packet
+            if not CAPTURE_MSG_FLAG:
+                self.right_buffer.text += "\n\n------------------------Capture-Started------------------------\n"
+                CAPTURE_MSG_FLAG = True
+
+        if not CAPTURE and CAPTURE_MSG_FLAG:
+            with open(f'Capture_log{CAPTURE_LOG_FILE_COUNTER}.txt', 'w', encoding='UTF-8') as file:
+                CAPTURE_LOG_FILE_COUNTER += 1
+                file.write(CAPTURE_LOG)
+                self.right_buffer.text += "\n\n------------------------Capture-Stopped------------------------\n"
+            CAPTURE_LOG = ""
+            CAPTURE_MSG_FLAG = False
 
 
 @kb.add("c-q", eager=True)
@@ -287,10 +310,10 @@ def _(event):
     event.app.exit()
 
 
-@kb.add("c-d", eager=True)
+@kb.add("c-x", eager=True)
 def _(_):
     """
-    Pressing Ctrl-D Clear the log
+    Pressing Ctrl-X Clear the log
     """
     global CLEAR_LOG  # pylint: disable=global-statement
     CLEAR_LOG = True
@@ -308,10 +331,22 @@ def _(_):
         file.write(OUTPUT_LOG)
 
 
-@kb.add("c-a", eager=True)
+@kb.add("c-c", eager=True)
 def _(_):
     """
-    Pressing Ctrl-A Copy log to clipboard
+    Pressing Ctrl-C Copy log to clipboard
     """
     global OUTPUT_LOG  # pylint: disable=global-statement,W0602
     pyperclip.copy(OUTPUT_LOG)
+
+
+@kb.add("c-w", eager=True)
+def _(_):
+    """
+    Pressing Ctrl-W
+    """
+    global CAPTURE
+    global CAPTURE_LOG
+    global CAPTURE_LOG_FILE_COUNTER
+    global CAPTURE_MSG_FLAG
+    CAPTURE = not CAPTURE
