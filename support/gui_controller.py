@@ -125,11 +125,11 @@ class GuiController:
                         self.left_window2,
                         Window(height=1, char="-", style="class:line"),
                         Window(height=1, content=FormattedTextControl(
-                            [("class:line", "Integrated Software Technologies Inc. fg=darkred")]),
+                            [("class:title bg:black fg:red", "Integrated Software Technologies Inc.")]),
                                style="class:title",
                                align=WindowAlign.CENTER),
                         Window(height=1, content=FormattedTextControl(
-                            [("class:line", "http://integratedsw.tech fg=darkred")]),
+                            [("class:title bg:black fg:red", "http://integratedsw.tech")]),
                                style="class:title",
                                align=WindowAlign.CENTER),
                         Window(height=1, char="-", style="class:line"),
@@ -166,7 +166,7 @@ class GuiController:
         self.connection_info = connection_info
         # self.left_buffer.insert_text(connection_info)
         self.left_buffer.on_text_changed += self.default_buffer_changed
-        self.right_buffer.on_text_insert += self.update_log_cursor
+        self.right_buffer.on_text_changed += self.update_log_cursor
 
         # Creating an `Application` instance
         # This glues everything together.
@@ -190,11 +190,11 @@ class GuiController:
         # Run the interface. (This runs the event loop until Ctrl-Q is pressed.)
         self.application.run()
 
-    def update_log_cursor(self):
+    def update_log_cursor(self, _):
         """
             update_log_curser
         """
-        self.right_buffer.text += "\n"
+        self.right_buffer.cursor_down(len(self.right_buffer.text))
 
     def default_buffer_changed(self, _):
         """
