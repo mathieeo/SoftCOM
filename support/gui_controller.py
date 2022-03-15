@@ -17,7 +17,7 @@ from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.lexers import PygmentsLexer
 from support.serial_simulator import random_text_generator  # pylint: disable=E0401
 from support.progress_bar import CustomProgressBar  # pylint: disable=E0401
-from support.version import __version__
+from support.version import __version__  # pylint: disable=E0401
 
 FIND_UNIQUE_KEY = '^/'
 FIND_STOP_UNIQUE_KEY = '&/'
@@ -55,13 +55,11 @@ def get_options_text():
 
     :return:
     """
-    global CAPTURE
     return [
         ("class:title fg:darkred", " [Control+Q]     - Quit \n"),
         ("class:title fg:yellow", " [Control+X]     - Clear Log \n"),
         ("class:title fg:yellow", " [Control+S]     - Export to file \n"),
-        (f"class:title fg:yellow", " [Control+W]     - " + "Start/Stop capture \n"
-            if not CAPTURE else "Stop capture and Save\n"),
+        ("class:title fg:yellow", " [Control+W]     - Start/Stop capture \n"),
         ("class:title fg:yellow", " [Control+C]     - Copy All in clipboard \n"),
         ("class:title fg:cyan", " [^/search_str]  - Highlight Pattern \n"),
         ("class:title fg:cyan", " [&/search_str]  - Find and Stop \n"),
@@ -185,6 +183,7 @@ class GuiController:
         UPDATE_LOG_FLAG = True
         HIGHLIGHT = False
         HIGHLIGHT_STOP = False
+
 
         self.read_thread.start()
         # Run the interface. (This runs the event loop until Ctrl-Q is pressed.)
@@ -345,8 +344,5 @@ def _(_):
     """
     Pressing Ctrl-W
     """
-    global CAPTURE
-    global CAPTURE_LOG
-    global CAPTURE_LOG_FILE_COUNTER
-    global CAPTURE_MSG_FLAG
+    global CAPTURE  # pylint: disable=global-statement,W0602
     CAPTURE = not CAPTURE
