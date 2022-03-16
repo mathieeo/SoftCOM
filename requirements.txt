@@ -1,6 +1,4 @@
 argparse
-build
-click~=8.0.4
 isort
 pre-commit
 prompt_toolkit
@@ -8,8 +6,4 @@ Pygments~=2.11.2
 pylint
 pyperclip
 pytest==7.1.0
-pytest-cov
-pyupgrade
-rich
 serial~=0.0.97
-twine

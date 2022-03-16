@@ -4,6 +4,7 @@
 """
 import sys
 import time
+from os.path import exists
 from threading import Thread
 
 import pyperclip
@@ -100,6 +101,7 @@ class GuiController:
 
         # prams
         self.simulator_mode = simulator_mode
+        self.serial_dev_path = serial_device_path
         if not simulator_mode:
             # Serial device
             self.ser_dev = SerialManager(serial_device_path, serial_device_rate)
@@ -268,6 +270,16 @@ class GuiController:
         global LICENSE
 
         while UPDATE_LOG_FLAG:
+            if not exists(self.serial_dev_path) and not self.simulator_mode:
+                UPDATE_LOG_FLAG = False
+                msg = f"ERROR: {self.serial_dev_path} is not connected."
+                self.right_buffer.text += "-" * len(msg)
+                self.right_buffer.text += "\n"
+                self.right_buffer.text += msg
+                self.right_buffer.text += "\n"
+                self.right_buffer.text += "-" * len(msg)
+                sys.exit(1)
+
             if LICENSE:
                 # open text file in read mode
                 with open("LICENSE", "r", encoding='UTF-8') as file:
