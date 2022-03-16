@@ -5,22 +5,26 @@
 import sys
 import time
 from threading import Thread
+
 import pyperclip
-from pygments.lexers.textedit import VimLexer
-from pygments.lexers.console import PyPyLogLexer
 from prompt_toolkit.application import Application
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout.containers import HSplit, VSplit, Window, WindowAlign
+from prompt_toolkit.layout.containers import (HSplit, VSplit, Window,
+                                              WindowAlign)
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.lexers import PygmentsLexer
-from support.serial_simulator import random_text_generator  # pylint: disable=E0401
-from support.progress_bar import CustomProgressBar  # pylint: disable=E0401
-from support.version import __version__  # pylint: disable=E0401
-from support.serial_manage import SerialManager  # pylint: disable=E0401
-from support.message_dialog import MessageDialog  # pylint: disable=E0401
+from pygments.lexers.console import PyPyLogLexer
+from pygments.lexers.textedit import VimLexer
+
 from support.exceptions import SerialDeviceOpenError  # pylint: disable=E0401
+from support.message_dialog import MessageDialog  # pylint: disable=E0401
+from support.progress_bar import CustomProgressBar  # pylint: disable=E0401
+from support.serial_manage import SerialManager  # pylint: disable=E0401
+from support.serial_simulator import \
+    random_text_generator  # pylint: disable=E0401
+from support.version import __version__  # pylint: disable=E0401
 
 FIND_UNIQUE_KEY = '^/'
 FIND_STOP_UNIQUE_KEY = '&/'

@@ -2,17 +2,19 @@
 """
     Placeholder
 """
+import argparse
 # pylint: disable=ًW0603
 import os
 import sys
-import argparse
 from os.path import exists
+
 from prompt_toolkit.completion import WordCompleter
+
+from support.gui_controller import GuiController
 from support.input_dialog import InputDialog
+from support.message_dialog import MessageDialog
 from support.radiolist_dialog import RadioListDialog
 from support.save_settings import SaveSettings
-from support.message_dialog import MessageDialog
-from support.gui_controller import GuiController
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 __SettingsFilePath___ = os.path.join(__location__, 'settings.json')

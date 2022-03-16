@@ -5,6 +5,7 @@
 """
 from prompt_toolkit.shortcuts import message_dialog
 from prompt_toolkit.styles import Style
+
 # from prompt_toolkit.completion import Completer, Completion, FuzzyCompleter
 # from prompt_toolkit.completion import WordCompleter
 

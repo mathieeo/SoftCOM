@@ -4,7 +4,9 @@
 """
 import sys
 import time
+
 import serial
+
 from support.exceptions import SerialDeviceOpenError  # pylint: disable=E0401
 
 
@@ -63,7 +65,7 @@ class SerialManager:
         :return:
         """
         start_time = time.time()
-        self.ser.write("\n".encode())
+        self.ser.write(b"\n")
         while time.time() < start_time + timeout:
             if self.ser.inWaiting():
                 line = self.ser.readline()
@@ -83,7 +85,7 @@ class SerialManager:
         :return:
         """
         print(f"\n\n\ntrying to execute [{command}]\n")
-        self.ser.write("\n".encode())
+        self.ser.write(b"\n")
         start_time = time.time()
         while time.time() < start_time + timeout:
             if self.ser.inWaiting():

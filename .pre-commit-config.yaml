@@ -7,14 +7,15 @@ repos:
     rev: 'v5.9.1'  # Use the revision sha / tag you want to point at
     hooks:
     -   id: isort
--   repo: local
-    hooks:
-    -   id: system
-        name: PyLint
-        entry: python -m pylint.__main__
-        language: system
-        files: \.py$
--   repo: https://github.com/asottile/pyupgrade
-    rev: v2.19.4
-    hooks:
-    - id: pyupgrade
+- repo: local
+  hooks:
+    - id: pylint
+      name: pylint
+      entry: pylint
+      language: system
+      types: [python]
+      args:
+        [
+          "-rn", # Only display messages
+          "-sn", # Don't display the score
+        ]
