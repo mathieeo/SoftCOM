@@ -5,8 +5,7 @@
 import sys
 import time
 import serial
-
-__serial_speed__ = 115200
+from support.exceptions import SerialDeviceOpenError  # pylint: disable=E0401
 
 
 class SerialManager:
@@ -16,22 +15,44 @@ class SerialManager:
         placeholder
     """
 
-    def __init__(self):
+    def __init__(self, serial_device_path, serial_device_rate):
         """
             placeholder
         """
-        self.ser = serial.Serial()
+        self.ser = serial.Serial(baudrate=serial_device_rate)
+        self.device_path = serial_device_path
+        self.rate = serial_device_rate
+        self.is_open = False
 
-    def open_dev(self, dev_path):
+    def open_dev(self):
         """
         placeholder
-        :param dev_path:
         :return:
         """
-        self.ser = serial.Serial(dev_path, __serial_speed__, timeout=0.1)
-        if self.ser.isOpen():
-            print(F"Serial port {dev_path} opened successfully.")
-            # todo  raise SerialAppOpenFailed
+        try:
+            self.ser = serial.Serial(self.device_path, self.rate, timeout=0.1)
+            if self.ser.isOpen():
+                self.is_open = True
+            else:
+                raise SerialDeviceOpenError()
+        except SerialDeviceOpenError as err:
+            raise err
+
+    def close_dev(self):
+        """
+        placeholder
+        """
+        self.ser.close()
+
+    def read(self):
+        """
+            read
+        """
+        # self.ser.write("\n".encode())  # todo needed?
+        if self.ser.inWaiting():
+            line = self.ser.readline()
+            if line:
+                return line[:-1]
 
     def wait_for_msg(self, msg, timeout=60):
         """

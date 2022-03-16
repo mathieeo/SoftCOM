@@ -5,7 +5,7 @@
 """
 import random
 
-lines = open('test_log.txt', encoding='UTF-8').read().splitlines()
+lines = open('test_log.txt', encoding='UTF-8').read().splitlines()  # pylint: disable=R1732
 
 
 def get_random_string():

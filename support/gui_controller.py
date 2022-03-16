@@ -4,6 +4,7 @@
 """
 import sys
 import time
+import os
 from threading import Thread
 import pyperclip
 from pygments.lexers.textedit import VimLexer
@@ -18,6 +19,9 @@ from prompt_toolkit.lexers import PygmentsLexer
 from support.serial_simulator import random_text_generator  # pylint: disable=E0401
 from support.progress_bar import CustomProgressBar  # pylint: disable=E0401
 from support.version import __version__  # pylint: disable=E0401
+from support.serial_manage import SerialManager  # pylint: disable=E0401
+from support.message_dialog import MessageDialog  # pylint: disable=E0401
+from support.exceptions import SerialDeviceOpenError  # pylint: disable=E0401
 
 FIND_UNIQUE_KEY = '^/'
 FIND_STOP_UNIQUE_KEY = '&/'
@@ -37,6 +41,7 @@ HIGHLIGHT_STOP_STRING = ""
 CAPTURE = False
 CAPTURE_LOG = ""
 CAPTURE_MSG_FLAG = False
+
 
 def get_titlebar_text(custom_msg):
     """
@@ -77,13 +82,25 @@ class GuiController:
         GuiController
     """
 
-    def __init__(self, connection_info=""):
+    def __init__(self, serial_device_path, serial_device_rate, simulator_mode: bool):
         """
             __Init__
         """
         global UPDATE_LOG_FLAG
         global HIGHLIGHT
         global HIGHLIGHT_STOP
+
+        # prams
+        self.simulator_mode = simulator_mode
+        if not simulator_mode:
+            # Serial device
+            self.ser_dev = SerialManager(serial_device_path, serial_device_rate)
+            try:
+                self.ser_dev.open_dev()
+            except SerialDeviceOpenError:
+                MessageDialog("Failed", f"Failed to open the {serial_device_path} device.")
+                os.exit(1)
+
         #  Create the buffers
         self.left_buffer = Buffer()
         self.left_buffer2 = Buffer()
@@ -152,7 +169,7 @@ class GuiController:
                 # The titlebar.
                 Window(
                     height=1,
-                    content=FormattedTextControl(get_titlebar_text(connection_info)),
+                    content=FormattedTextControl(get_titlebar_text(f"{serial_device_path} {serial_device_rate}")),
                     align=WindowAlign.CENTER,
                 ),
                 # Horizontal separator.
@@ -161,7 +178,7 @@ class GuiController:
                 self.body,
             ]
         )
-        self.connection_info = connection_info
+        self.connection_info = f"device {serial_device_path} opened successfully. {serial_device_rate}"
         # self.left_buffer.insert_text(connection_info)
         self.left_buffer.on_text_changed += self.default_buffer_changed
         self.right_buffer.on_text_changed += self.update_log_cursor
@@ -184,10 +201,15 @@ class GuiController:
         HIGHLIGHT = False
         HIGHLIGHT_STOP = False
 
-
         self.read_thread.start()
         # Run the interface. (This runs the event loop until Ctrl-Q is pressed.)
         self.application.run()
+
+    def __del__(self):
+        """
+            Del
+        """
+        self.ser_dev.close_dev()
 
     def update_log_cursor(self, _):
         """
@@ -236,22 +258,22 @@ class GuiController:
         global HIGHLIGHT_STOP_STRING
         global UPDATE_LOG_FLAG
 
-        counter = 0
-
         while UPDATE_LOG_FLAG:
             if CLEAR_LOG:
                 self.right_buffer.reset()
                 CLEAR_LOG = False
 
-            incoming_packet = random_text_generator()
+            if self.simulator_mode:
+                incoming_packet = random_text_generator()
+            else:
+                incoming_packet = self.ser_dev.read()
+                if incoming_packet is None:
+                    incoming_packet = ""
             self.check_incoming_packet(incoming_packet)
 
             self.right_buffer.text += incoming_packet
             OUTPUT_LOG = self.right_buffer.text
-            time.sleep(0.15)
-            counter += 1
-            if counter > 10000:
-                sys.exit()
+            time.sleep(0.10)
 
     def check_incoming_packet(self, incoming_packet):
         """
