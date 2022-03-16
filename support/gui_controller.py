@@ -15,7 +15,9 @@ from prompt_toolkit.layout.containers import (HSplit, VSplit, Window,
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.lexers import PygmentsLexer
-from pygments.lexers.console import PyPyLogLexer
+# from pygments.lexers.console import PyPyLogLexer
+# from pygments.lexers.teal import TealLexer
+from pygments.lexers.templates import Angular2Lexer
 from pygments.lexers.textedit import VimLexer
 
 from support.exceptions import SerialDeviceOpenError  # pylint: disable=E0401
@@ -26,8 +28,8 @@ from support.serial_simulator import \
     random_text_generator  # pylint: disable=E0401
 from support.version import __version__  # pylint: disable=E0401
 
-FIND_UNIQUE_KEY = '^/'
-FIND_STOP_UNIQUE_KEY = '&/'
+FIND_UNIQUE_KEY = '/*'
+FIND_STOP_UNIQUE_KEY = '/@'
 
 UPDATE_LOG_FLAG = False
 CLEAR_LOG = False
@@ -69,8 +71,8 @@ def get_options_text():
         ("class:title fg:yellow", " [Control+S]     - Export to file \n"),
         ("class:title fg:yellow", " [Control+W]     - Start/Stop capture \n"),
         ("class:title fg:yellow", " [Control+C]     - Copy All in clipboard \n"),
-        ("class:title fg:cyan", " [^/search_str]  - Highlight Pattern \n"),
-        ("class:title fg:cyan", " [&/search_str]  - Find and Stop \n"),
+        ("class:title fg:cyan", " [" + FIND_UNIQUE_KEY + "search_str]  - Highlight Pattern \n"),
+        ("class:title fg:cyan", " [" + FIND_STOP_UNIQUE_KEY + "search_str]  - Find and Stop \n"),
         ("class:title fg:green", " [Control+H]     - Help \n"),
     ]
 
@@ -113,7 +115,7 @@ class GuiController:
                                                 lexer=PygmentsLexer(VimLexer), ), width=3)
         self.left_window2 = Window(BufferControl(buffer=self.left_buffer2,
                                                  lexer=PygmentsLexer(VimLexer), ))
-        self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(PyPyLogLexer)),
+        self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(Angular2Lexer)),
                                    wrap_lines=True)
         self.body = VSplit(
             [
@@ -231,16 +233,16 @@ class GuiController:
         global HIGHLIGHT_STOP_STRING
         global UPDATE_LOG_FLAG
         if self.left_buffer.text and self.left_buffer.text[-1] == '\n':
-            if self.left_buffer.text[:2] == FIND_UNIQUE_KEY:
+            if self.left_buffer.text[:len(FIND_UNIQUE_KEY)] == FIND_UNIQUE_KEY:
                 UPDATE_LOG_FLAG = False
                 HIGHLIGHT = True
-                HIGHLIGHT_STRING = self.left_buffer.text[2:-1]
+                HIGHLIGHT_STRING = self.left_buffer.text[len(FIND_UNIQUE_KEY):-1]
                 UPDATE_LOG_FLAG = True
 
-            elif self.left_buffer.text[:2] == FIND_STOP_UNIQUE_KEY:
+            elif self.left_buffer.text[:len(FIND_STOP_UNIQUE_KEY)] == FIND_STOP_UNIQUE_KEY:
                 UPDATE_LOG_FLAG = False
                 HIGHLIGHT_STOP = True
-                HIGHLIGHT_STOP_STRING = self.left_buffer.text[2:-1]
+                HIGHLIGHT_STOP_STRING = self.left_buffer.text[len(FIND_STOP_UNIQUE_KEY):-1]
                 UPDATE_LOG_FLAG = True
             else:
                 self.right_buffer.text += self.left_buffer.text
@@ -295,9 +297,10 @@ class GuiController:
         if HIGHLIGHT and HIGHLIGHT_STRING:
             found = incoming_packet.find(HIGHLIGHT_STRING)
             if found > 0:
-                incoming_packet = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\0\0' + \
-                                  incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + \
-                                  incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
+                raw_log = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\0\0' + \
+                          incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + \
+                          incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
+                self.right_buffer.text += raw_log
 
         if HIGHLIGHT_STOP and HIGHLIGHT_STOP_STRING:
             found = incoming_packet.find(HIGHLIGHT_STOP_STRING)
