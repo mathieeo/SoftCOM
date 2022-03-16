@@ -24,6 +24,13 @@
   </ol>
 </details>
 
+[![Python Version](https://img.shields.io/badge/python-3.10.x-brightgreen.svg)](https://python.org)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![issues](https://img.shields.io/github/issues/mathieeo/serialapp)](https://github.com/mathieeo/SerialApp/issues)
+[![issues](https://img.shields.io/github/languages/count/mathieeo/serialapp)](https://github.com/mathieeo/SerialApp)
+[![issues](https://img.shields.io/github/languages/code-size/mathieeo/serialapp)](https://github.com/mathieeo/SerialApp)
+[![issues](https://img.shields.io/github/followers/mathieeo?style=social)](https://github.com/mathieeo/SerialApp)
+
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
