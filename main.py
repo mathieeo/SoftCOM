@@ -31,33 +31,33 @@ if __name__ == "__main__":
         os.remove(__SettingsFilePath___)
 
     settings = SaveSettings(__SettingsFilePath___)
-    device_path, rate, bits = settings.get_settings()
+    DEVICE_PATH, RATE, BITS = settings.get_settings()
 
     if parsed.simulator:
-        device_path = "simulator"
-        rate = ""
+        DEVICE_PATH = "simulator"
+        RATE = ""
     else:
-        if device_path is not None and not exists(str(device_path)):
-            MessageDialog("Failed", f"{device_path} is not found.")
+        if DEVICE_PATH is not None and not exists(str(DEVICE_PATH)):
+            MessageDialog("Failed", f"{DEVICE_PATH} is not found.")
             sys.exit(1)
 
-        if device_path is None:
-            device_path = InputDialog("Configuration", text="Please type device path [/dev/ttyUSB0].",
+        if DEVICE_PATH is None:
+            DEVICE_PATH = InputDialog("Configuration", text="Please type device path [/dev/ttyUSB0].",
                                       completer=device_completer).get_result()
-            if not exists(device_path):
-                MessageDialog("Failed", f"{device_path} is not listed.")
+            if not exists(DEVICE_PATH):
+                MessageDialog("Failed", f"{DEVICE_PATH} is not listed.")
                 sys.exit(1)
 
-            rate = RadioListDialog("Configuration", text="Bit rates.", values=[("4800", "4800 bit/s"),
+            RATE = RadioListDialog("Configuration", text="Bit rates.", values=[("4800", "4800 bit/s"),
                                                                                ("9600", "9600 bit/s"),
                                                                                ("19200", "19200 bit/s"),
                                                                                ("38400", "38400 bit/s"),
                                                                                ("57600", "57600 bit/s"),
                                                                                ("115200", "115200 bit/s")
                                                                                ]).get_result()
-            bits = 8  # RadioListDialog("Configuration", text="Bits.", values=[("7", "7"),
+            BITS = 8  # RadioListDialog("Configuration", text="Bits.", values=[("7", "7"),
             #                                                        ("8", "8"),
             #                                                   ]).get_result()
-            settings.set_settings(device_path, rate, bits)
-    GuiController(device_path, rate, parsed.simulator)
+            settings.set_settings(DEVICE_PATH, RATE, BITS)
+    GuiController(DEVICE_PATH, RATE, parsed.simulator)
     settings.save_file()

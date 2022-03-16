@@ -4,7 +4,6 @@
 """
 import sys
 import time
-import os
 from threading import Thread
 import pyperclip
 from pygments.lexers.textedit import VimLexer
@@ -99,7 +98,7 @@ class GuiController:
                 self.ser_dev.open_dev()
             except SerialDeviceOpenError:
                 MessageDialog("Failed", f"Failed to open the {serial_device_path} device.")
-                os.exit(1)
+                sys.exit(1)
 
         #  Create the buffers
         self.left_buffer = Buffer()

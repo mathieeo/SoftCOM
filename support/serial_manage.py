@@ -53,6 +53,7 @@ class SerialManager:
             line = self.ser.readline()
             if line:
                 return line[:-1]
+        return ""
 
     def wait_for_msg(self, msg, timeout=60):
         """

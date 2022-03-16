@@ -1,0 +1,20 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1  # Use the ref you want to point at
+    hooks:
+    -   id: requirements-txt-fixer
+-   repo: https://github.com/pre-commit/mirrors-isort
+    rev: 'v5.9.1'  # Use the revision sha / tag you want to point at
+    hooks:
+    -   id: isort
+-   repo: local
+    hooks:
+    -   id: system
+        name: PyLint
+        entry: python -m pylint.__main__
+        language: system
+        files: \.py$
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.19.4
+    hooks:
+    - id: pyupgrade
