@@ -32,6 +32,9 @@
 [![issues](https://img.shields.io/github/followers/mathieeo?style=social)](https://github.com/mathieeo/SerialApp)
 
 
+# [<img alt="" width="30x" src="images/logo.png" />](https://integratedsw.tech) Integrated Software Technologies Inc.
+
+[<img alt="alt_text" width="300x" src="images/animated_logo.gif" />](https://integratedsw.tech)
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
@@ -145,7 +148,7 @@ Distributed under the GNU GPLv3 License. See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [matt](https://integratedsw.tech)@integratedsw.tech
+Matthew - [eMail](mailto:matt@integratedsw.tech?subject=SerialApp)
 
 Project Link: [Serial App](https://github.com/mathieeo/SerialApp)
 
