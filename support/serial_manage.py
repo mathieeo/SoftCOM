@@ -2,7 +2,6 @@
 """
     placeholder
 """
-import sys
 import time
 
 import serial
@@ -50,31 +49,11 @@ class SerialManager:
         """
             read
         """
-        # self.ser.write("\n".encode())  # todo needed?
         if self.ser.inWaiting():
             line = self.ser.readline()
             if line:
                 return line[:-1]
         return ""
-
-    def wait_for_msg(self, msg, timeout=60):
-        """
-            wait for a specific serial line with timeout
-        :param msg:
-        :param timeout:
-        :return:
-        """
-        start_time = time.time()
-        self.ser.write(b"\n")
-        while time.time() < start_time + timeout:
-            if self.ser.inWaiting():
-                line = self.ser.readline()
-                if line:
-                    print(line[:-1])
-                    if msg.encode() in line:
-                        return
-        print("ERROR: Serial command is timed out.")
-        sys.exit(1)
 
     def exe_command(self, command, ready_msg, timeout=60):
         """
@@ -98,5 +77,5 @@ class SerialManager:
                         self.ser.write(f"{command}".encode())
                         self.ser.flushInput()
                         return
-        print("ERROR: Serial command is timed out.")
-        sys.exit(1)
+        # print("ERROR: Serial command is timed out.")
+        # sys.exit(1)

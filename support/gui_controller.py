@@ -46,6 +46,8 @@ HIGHLIGHT_STOP_STRING = ""
 CAPTURE = False
 CAPTURE_LOG = ""
 CAPTURE_MSG_FLAG = False
+# license
+LICENSE = False
 
 
 def get_titlebar_text(custom_msg):
@@ -73,6 +75,7 @@ def get_options_text():
         ("class:title fg:yellow", " [Control+C]     - Copy All in clipboard \n"),
         ("class:title fg:cyan", " [" + FIND_UNIQUE_KEY + "search_str]  - Highlight Pattern \n"),
         ("class:title fg:cyan", " [" + FIND_STOP_UNIQUE_KEY + "search_str]  - Find and Stop \n"),
+        ("class:title fg:green", " [Control+L]     - Show License \n"),
         ("class:title fg:green", " [Control+H]     - Help \n"),
     ]
 
@@ -262,8 +265,20 @@ class GuiController:
         global HIGHLIGHT_STOP
         global HIGHLIGHT_STOP_STRING
         global UPDATE_LOG_FLAG
+        global LICENSE
 
         while UPDATE_LOG_FLAG:
+            if LICENSE:
+                # open text file in read mode
+                with open("LICENSE", "r", encoding='UTF-8') as file:
+                    # read whole license to a string
+                    UPDATE_LOG_FLAG = False
+                    data = file.read()
+                    # close file
+                    file.close()
+                    self.right_buffer.text += str(data)
+                    self.right_buffer.text += "\n\nPlease close the program and re-open.\n\n"
+
             if CLEAR_LOG:
                 self.right_buffer.reset()
                 CLEAR_LOG = False
@@ -374,3 +389,12 @@ def _(_):
     """
     global CAPTURE  # pylint: disable=global-statement,W0602
     CAPTURE = not CAPTURE
+
+
+@kb.add("c-l", eager=True)
+def _(_):
+    """
+    Pressing Ctrl-L
+    """
+    global LICENSE  # pylint: disable=global-statement,W0602
+    LICENSE = True

@@ -131,3 +131,5 @@ dmypy.json
 .idea/
 
 *.txt
+
+settings.json
