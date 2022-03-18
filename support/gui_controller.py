@@ -10,13 +10,14 @@ from threading import Thread
 import pyperclip
 from prompt_toolkit.application import Application
 from prompt_toolkit.buffer import Buffer
+from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout.containers import (HSplit, VSplit, Window,
                                               WindowAlign)
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.lexers import PygmentsLexer
-# from pygments.lexers.console import PyPyLogLexer
+from pygments.lexers.console import PyPyLogLexer
 # from pygments.lexers.teal import TealLexer
 from pygments.lexers.templates import Angular2Lexer
 from pygments.lexers.textedit import VimLexer
@@ -49,6 +50,8 @@ CAPTURE_LOG = ""
 CAPTURE_MSG_FLAG = False
 # license
 LICENSE = False
+# command
+SEND_COMMAND = False
 
 
 def get_titlebar_text(custom_msg):
@@ -91,7 +94,7 @@ class GuiController:
         GuiController
     """
 
-    def __init__(self, serial_device_path, serial_device_rate, simulator_mode: bool):
+    def __init__(self, serial_device_path, serial_device_baudrate, simulator_mode: bool):
         """
             __Init__
         """
@@ -102,9 +105,11 @@ class GuiController:
         # prams
         self.simulator_mode = simulator_mode
         self.serial_dev_path = serial_device_path
+        self.inserted_command: str = ""
+
         if not simulator_mode:
             # Serial device
-            self.ser_dev = SerialManager(serial_device_path, serial_device_rate)
+            self.ser_dev = SerialManager(serial_device_path, serial_device_baudrate)
             try:
                 self.ser_dev.open_dev()
             except SerialDeviceOpenError:
@@ -113,73 +118,77 @@ class GuiController:
 
         #  Create the buffers
         self.left_buffer = Buffer()
-        self.left_buffer2 = Buffer()
         self.right_buffer = Buffer()
-        # First we create the layout
+        self.status_buffer = Buffer()
         self.left_window = Window(BufferControl(buffer=self.left_buffer,
-                                                lexer=PygmentsLexer(VimLexer), ), width=3)
-        self.left_window2 = Window(BufferControl(buffer=self.left_buffer2,
-                                                 lexer=PygmentsLexer(VimLexer), ))
-        self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(Angular2Lexer)),
-                                   wrap_lines=True)
-        self.body = VSplit(
-            [
-                HSplit(
-                    [
-                        Window(height=1, content=FormattedTextControl([("class:line", "Input Options")]),
-                               style="class:title",
-                               align=WindowAlign.CENTER),
-                        # Horizontal separator.
-                        Window(height=1, char="-", style="class:line"),
-                        # The titlebar.
-                        Window(height=len(get_options_text()), content=FormattedTextControl(get_options_text()),
-                               align=WindowAlign.LEFT),
-                        # Horizontal separator.
-                        Window(height=1, char="-", style="class:line"),
+                                                lexer=PygmentsLexer(VimLexer)), width=10)
+        self.status_window = Window(BufferControl(buffer=self.status_buffer,
+                                                  lexer=PygmentsLexer(PyPyLogLexer)), height=1)
+        self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(Angular2Lexer),
+                                                 focus_on_click=True),  wrap_lines=True, )
+        self.body = \
+            HSplit(
+                [
+                    VSplit(
+                        [
+                            HSplit(
+                                [
+                                    Window(height=1, content=FormattedTextControl([("class:line", "Input Options")]),
+                                           style="class:title",
+                                           align=WindowAlign.CENTER),
+                                    # Horizontal separator.
+                                    Window(height=1, char="-", style="class:line"),
+                                    # The titlebar.
+                                    Window(height=len(get_options_text()),
+                                           content=FormattedTextControl(get_options_text()),
+                                           align=WindowAlign.LEFT),
+                                    # Horizontal separator.
+                                    Window(height=1, char="-", style="class:line"),
+                                    Window(height=1, content=FormattedTextControl([("class:line",
+                                                                                    "Commands History")]),
+                                           style="class:title",
+                                           align=WindowAlign.CENTER),
+                                    Window(height=1, char="-", style="class:line"),
+                                    self.left_window,
+                                    Window(height=1, char="-", style="class:line"),
+                                    Window(height=1, content=FormattedTextControl(
+                                        [("class:title bg:black fg:red", "Integrated Software Technologies Inc.")]),
+                                           style="class:title",
+                                           align=WindowAlign.CENTER),
+                                    Window(height=1, content=FormattedTextControl(
+                                        [("class:title bg:black fg:red", "http://integratedsw.tech")]),
+                                           style="class:title",
+                                           align=WindowAlign.CENTER),
+                                ]),
+                            # A vertical line in the middle. We explicitly specify the width, to make
+                            # sure that the layout engine will not try to divide the whole width by
+                            # three for all these windows.
+                            Window(width=1, char="|", style="class:line"),
+                            # Display the Result buffer on the right.
+                            HSplit(
+                                [
+                                    Window(height=1, content=FormattedTextControl([("class:line", "Output Log")]),
+                                           style="class:title",
+                                           align=WindowAlign.CENTER),
+                                    Window(height=1, char="-", style="class:line"),
+                                    self.right_window,
+                                ]),
+                        ]
+                    ),
+                    Window(height=1, char="-", style="class:line"),
+                    Window(height=1, content=FormattedTextControl([("class:line", "Status")]),
+                           style="class:title",
+                           align=WindowAlign.CENTER),
+                    Window(height=1, char="-", style="class:line"),
+                    self.status_window
+                ])
 
-                        Window(height=1, content=FormattedTextControl([("class:line", "Type Command >>")]),
-                               style="class:title"),
-                        # Horizontal separator.
-                        Window(height=1, char="-", style="class:line"),
-                        self.left_window,
-                        Window(height=1, char="-", style="class:line"),
-                        Window(height=1, content=FormattedTextControl([("class:line", "Commands History")]),
-                               style="class:title",
-                               align=WindowAlign.CENTER),
-                        Window(height=1, char="-", style="class:line"),
-                        self.left_window2,
-                        Window(height=1, char="-", style="class:line"),
-                        Window(height=1, content=FormattedTextControl(
-                            [("class:title bg:black fg:red", "Integrated Software Technologies Inc.")]),
-                               style="class:title",
-                               align=WindowAlign.CENTER),
-                        Window(height=1, content=FormattedTextControl(
-                            [("class:title bg:black fg:red", "http://integratedsw.tech")]),
-                               style="class:title",
-                               align=WindowAlign.CENTER),
-                        Window(height=1, char="-", style="class:line"),
-                    ]),
-                # A vertical line in the middle. We explicitly specify the width, to make
-                # sure that the layout engine will not try to divide the whole width by
-                # three for all these windows.
-                Window(width=1, char="|", style="class:line"),
-                # Display the Result buffer on the right.
-                HSplit(
-                    [
-                        Window(height=1, content=FormattedTextControl([("class:line", "Output Log")]),
-                               style="class:title",
-                               align=WindowAlign.CENTER),
-                        Window(height=1, char="-", style="class:line"),
-                        self.right_window,
-                    ]),
-            ]
-        )
         self.root_container = HSplit(
             [
                 # The titlebar.
                 Window(
                     height=1,
-                    content=FormattedTextControl(get_titlebar_text(f"{serial_device_path} {serial_device_rate}")),
+                    content=FormattedTextControl(get_titlebar_text(f"{serial_device_path} {serial_device_baudrate}")),
                     align=WindowAlign.CENTER,
                 ),
                 # Horizontal separator.
@@ -188,21 +197,22 @@ class GuiController:
                 self.body,
             ]
         )
-        self.connection_info = f"device {serial_device_path} opened successfully. {serial_device_rate}"
-        # self.left_buffer.insert_text(connection_info)
-        self.left_buffer.on_text_changed += self.default_buffer_changed
+        self.connection_info = f"device {serial_device_path} opened successfully. {serial_device_baudrate}"
         self.right_buffer.on_text_changed += self.update_log_cursor
+        self.right_buffer.on_text_insert += self.typing_command
 
         # Creating an `Application` instance
         # This glues everything together.
         self.application = Application(
-            layout=Layout(self.root_container, focused_element=self.left_window),
+            layout=Layout(self.root_container, focused_element=self.right_window),
             key_bindings=kb,
             # Let's add mouse support!
             mouse_support=True,
             # Using an alternate screen buffer means as much as: "run full screen".
             # It switches the terminal to an alternate screen.
             full_screen=True,
+            cursor=CursorShape.BLINKING_BLOCK,
+            enable_page_navigation_bindings=True
         )
         # Config read thread
         self.read_thread = Thread(target=self.periodic_update)
@@ -219,15 +229,62 @@ class GuiController:
         """
             Del
         """
-        self.ser_dev.close_dev()
+        if not self.simulator_mode:
+            self.ser_dev.close_dev()
 
-    def update_log_cursor(self, _):
+    def typing_command(self, event):
+        """
+            command_inserted
+        """
+        self.inserted_command += event.text[-1]
+
+    def get_status_text(self):
+        """
+            get_status_text
+        """
+        global HIGHLIGHT
+        global HIGHLIGHT_STRING
+        global HIGHLIGHT_STOP
+        global HIGHLIGHT_STOP_STRING
+
+        if self.simulator_mode:
+            return_var = "| Device:OPEN |"
+        else:
+            if self.ser_dev.is_dev_open():
+                return_var = "| Device:OPEN |"
+            else:
+                return_var = "| Device:CLOSE |"
+        if HIGHLIGHT:
+            return_var += f" Search:ON:[{HIGHLIGHT_STRING}] |"
+        # else:
+        # return_var += f" Search_Stop:OFF |"
+
+        if HIGHLIGHT_STOP_STRING:
+            return_var += f" Search_Stop:ON:[{HIGHLIGHT_STOP_STRING}] |"
+        # else:
+        # return_var += f" Search_Stop:OFF |"
+
+        if CAPTURE:
+            return_var += " Capture:ON |"
+
+        # else:
+        # return_var += f" Capture:OFF |"
+
+        return return_var
+
+    def update_log_cursor(self, event):  # pylint: disable=R0201
         """
             update_log_curser
         """
-        self.right_buffer.cursor_down(len(self.right_buffer.text))
+        if event.text:
+            col = len(event.text.splitlines()[-1])
+            while col:
+                event.cursor_right()
+                col -= 1
+            if event.text[-1] == "\n":
+                event.cursor_down()
 
-    def default_buffer_changed(self, _):
+    def check_send_command(self, command):
         """
         When the buffer on the left changes, update the buffer on
         the right. We just reverse the text.
@@ -237,22 +294,27 @@ class GuiController:
         global HIGHLIGHT_STOP
         global HIGHLIGHT_STOP_STRING
         global UPDATE_LOG_FLAG
-        if self.left_buffer.text and self.left_buffer.text[-1] == '\n':
-            if self.left_buffer.text[:len(FIND_UNIQUE_KEY)] == FIND_UNIQUE_KEY:
-                UPDATE_LOG_FLAG = False
-                HIGHLIGHT = True
-                HIGHLIGHT_STRING = self.left_buffer.text[len(FIND_UNIQUE_KEY):-1]
-                UPDATE_LOG_FLAG = True
 
-            elif self.left_buffer.text[:len(FIND_STOP_UNIQUE_KEY)] == FIND_STOP_UNIQUE_KEY:
-                UPDATE_LOG_FLAG = False
-                HIGHLIGHT_STOP = True
-                HIGHLIGHT_STOP_STRING = self.left_buffer.text[len(FIND_STOP_UNIQUE_KEY):-1]
-                UPDATE_LOG_FLAG = True
-            else:
-                self.right_buffer.text += self.left_buffer.text
-            self.left_buffer2.text += '- ' + self.left_buffer.text
-            self.left_buffer.reset()
+        if command == "\n":
+            return
+
+        # if command and command[-1] == '\n':
+        if command[:len(FIND_UNIQUE_KEY)] == FIND_UNIQUE_KEY:
+            UPDATE_LOG_FLAG = False
+            HIGHLIGHT = True
+            HIGHLIGHT_STRING = command[len(FIND_UNIQUE_KEY):-1]
+            UPDATE_LOG_FLAG = True
+
+        elif command[:len(FIND_STOP_UNIQUE_KEY)] == FIND_STOP_UNIQUE_KEY:
+            UPDATE_LOG_FLAG = False
+            HIGHLIGHT_STOP = True
+            HIGHLIGHT_STOP_STRING = command[len(FIND_STOP_UNIQUE_KEY):-1]
+            UPDATE_LOG_FLAG = True
+        else:
+            if not self.simulator_mode:
+                self.ser_dev.exe_command(command)
+
+        self.left_buffer.text += '- ' + command
 
     def periodic_update(self):
         """
@@ -268,6 +330,7 @@ class GuiController:
         global HIGHLIGHT_STOP_STRING
         global UPDATE_LOG_FLAG
         global LICENSE
+        global SEND_COMMAND
 
         while UPDATE_LOG_FLAG:
             if not exists(self.serial_dev_path) and not self.simulator_mode:
@@ -280,6 +343,9 @@ class GuiController:
                 self.right_buffer.text += "-" * len(msg)
                 sys.exit(1)
 
+            self.status_buffer.reset()
+            self.status_buffer.text = self.get_status_text()
+
             if LICENSE:
                 # open text file in read mode
                 with open("LICENSE", "r", encoding='UTF-8') as file:
@@ -291,12 +357,19 @@ class GuiController:
                     self.right_buffer.text += str(data)
                     self.right_buffer.text += "\n\nPlease close the program and re-open.\n\n"
 
+            if SEND_COMMAND:
+                # self.right_buffer.text += "\n"
+                self.check_send_command(self.inserted_command + "\n")
+                self.inserted_command = ""
+                SEND_COMMAND = False
+
             if CLEAR_LOG:
                 self.right_buffer.reset()
                 CLEAR_LOG = False
 
             if self.simulator_mode:
                 incoming_packet = random_text_generator()
+                time.sleep(0.2)
             else:
                 incoming_packet = self.ser_dev.read()
                 if incoming_packet is None:
@@ -305,7 +378,7 @@ class GuiController:
 
             self.right_buffer.text += incoming_packet
             OUTPUT_LOG = self.right_buffer.text
-            time.sleep(0.10)
+            time.sleep(0.0002)
 
     def check_incoming_packet(self, incoming_packet):
         """
@@ -410,3 +483,12 @@ def _(_):
     """
     global LICENSE  # pylint: disable=global-statement,W0602
     LICENSE = True
+
+
+@kb.add("enter", eager=True)
+def _(_):
+    """
+    Pressing Enter
+    """
+    global SEND_COMMAND  # pylint: disable=global-statement,W0602
+    SEND_COMMAND = True

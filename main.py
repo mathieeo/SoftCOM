@@ -33,11 +33,11 @@ if __name__ == "__main__":
         os.remove(__SettingsFilePath___)
 
     settings = SaveSettings(__SettingsFilePath___)
-    DEVICE_PATH, RATE, BITS = settings.get_settings()
+    DEVICE_PATH, BAUDRATE, BITS = settings.get_settings()
 
     if parsed.simulator:
         DEVICE_PATH = "simulator"
-        RATE = ""
+        BAUDRATE = ""
     else:
         if DEVICE_PATH is not None and not exists(str(DEVICE_PATH)):
             MessageDialog("Failed", f"{DEVICE_PATH} is not found.")
@@ -50,7 +50,7 @@ if __name__ == "__main__":
                 MessageDialog("Failed", f"{DEVICE_PATH} is not listed.")
                 sys.exit(1)
 
-            RATE = RadioListDialog("Configuration", text="Bit rates.", values=[("4800", "4800 bit/s"),
+            BAUDRATE = RadioListDialog("Configuration", text="Bit rates.", values=[("4800", "4800 bit/s"),
                                                                                ("9600", "9600 bit/s"),
                                                                                ("19200", "19200 bit/s"),
                                                                                ("38400", "38400 bit/s"),
@@ -60,6 +60,6 @@ if __name__ == "__main__":
             BITS = 8  # RadioListDialog("Configuration", text="Bits.", values=[("7", "7"),
             #                                                        ("8", "8"),
             #                                                   ]).get_result()
-            settings.set_settings(DEVICE_PATH, RATE, BITS)
-    GuiController(DEVICE_PATH, RATE, parsed.simulator)
+            settings.set_settings(DEVICE_PATH, BAUDRATE, BITS)
+    GuiController(DEVICE_PATH, BAUDRATE, parsed.simulator)
     settings.save_file()

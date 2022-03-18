@@ -2,7 +2,8 @@
 """
     placeholder
 """
-import time
+# import sys
+# import time
 
 import serial
 
@@ -25,6 +26,12 @@ class SerialManager:
         self.rate = serial_device_rate
         self.is_open = False
 
+    def is_dev_open(self):
+        """
+             is_open
+        """
+        return self.is_open
+
     def open_dev(self):
         """
         placeholder
@@ -35,6 +42,7 @@ class SerialManager:
             if self.ser.isOpen():
                 self.is_open = True
             else:
+                self.is_open = False
                 raise SerialDeviceOpenError()
         except SerialDeviceOpenError as err:
             raise err
@@ -52,30 +60,14 @@ class SerialManager:
         if self.ser.inWaiting():
             line = self.ser.readline()
             if line:
-                return line[:-1]
+                output = line[:-1].decode('UTF-8').rstrip()
+                output = output + '\n'
+                return output
         return ""
 
-    def exe_command(self, command, ready_msg, timeout=60):
+    def exe_command(self, command):
         """
             execute a serial commands
-        :param command: what command you want to execute
-        :param ready_msg: string to be seen before executing the command
-        :param timeout: timeout in seconds
-        :return:
         """
-        print(f"\n\n\ntrying to execute [{command}]\n")
-        self.ser.write(b"\n")
-        start_time = time.time()
-        while time.time() < start_time + timeout:
-            if self.ser.inWaiting():
-                line = self.ser.readline()
-                if line:
-                    print(line[:-1])
-                    if ready_msg.encode() in line:
-                        print("+")
-                        print(line[:-1])
-                        self.ser.write(f"{command}".encode())
-                        self.ser.flushInput()
-                        return
-        # print("ERROR: Serial command is timed out.")
-        # sys.exit(1)
+        self.ser.write(command.encode('UTF-8'))
+        self.ser.flush()
