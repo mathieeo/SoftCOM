@@ -52,6 +52,8 @@ CAPTURE_MSG_FLAG = False
 LICENSE = False
 # command
 SEND_COMMAND = False
+# debug
+DEBUG_MODE = False
 
 
 def get_titlebar_text(custom_msg):
@@ -81,6 +83,7 @@ def get_options_text():
         ("class:title fg:cyan", " [" + FIND_STOP_UNIQUE_KEY + "search_str]  - Find and Stop \n"),
         ("class:title fg:green", " [Control+L]     - Show License \n"),
         ("class:title fg:green", " [Control+H]     - Help \n"),
+        ("class:title fg:purple", " [Alt+Tab]       - Debug \n"),
     ]
 
 
@@ -125,7 +128,7 @@ class GuiController:
         self.status_window = Window(BufferControl(buffer=self.status_buffer,
                                                   lexer=PygmentsLexer(PyPyLogLexer)), height=1)
         self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(Angular2Lexer),
-                                                 focus_on_click=True),  wrap_lines=True, )
+                                                 focus_on_click=True), wrap_lines=True, )
         self.body = \
             HSplit(
                 [
@@ -232,12 +235,6 @@ class GuiController:
         if not self.simulator_mode:
             self.ser_dev.close_dev()
 
-    def typing_command(self, event):
-        """
-            command_inserted
-        """
-        self.inserted_command += event.text[-1]
-
     def get_status_text(self):
         """
             get_status_text
@@ -254,35 +251,47 @@ class GuiController:
                 return_var = "| Device:OPEN |"
             else:
                 return_var = "| Device:CLOSE |"
+
         if HIGHLIGHT:
             return_var += f" Search:ON:[{HIGHLIGHT_STRING}] |"
-        # else:
-        # return_var += f" Search_Stop:OFF |"
 
         if HIGHLIGHT_STOP_STRING:
             return_var += f" Search_Stop:ON:[{HIGHLIGHT_STOP_STRING}] |"
-        # else:
-        # return_var += f" Search_Stop:OFF |"
 
         if CAPTURE:
             return_var += " Capture:ON |"
 
-        # else:
-        # return_var += f" Capture:OFF |"
+        if DEBUG_MODE:
+            return_var += " DEBUG_MODE:ON |"
 
         return return_var
 
-    def update_log_cursor(self, event):  # pylint: disable=R0201
+    def typing_command(self, event):
+        """
+            command_inserted
+        """
+        self.inserted_command += event.text[-1]
+
+    def update_log_cursor(self, _):  # pylint: disable=R0201
         """
             update_log_curser
         """
-        if event.text:
-            col = len(event.text.splitlines()[-1])
-            while col:
-                event.cursor_right()
-                col -= 1
-            if event.text[-1] == "\n":
-                event.cursor_down()
+        self.update_cursor()
+
+    def update_cursor(self):
+        """
+        update_cursor
+        """
+        global DEBUG_MODE
+
+        if self.right_buffer.text[-1] == '\n' and len(self.right_buffer.text.splitlines()) > 1\
+                and self.inserted_command == "":
+            self.right_buffer.cursor_down()
+            if DEBUG_MODE:
+                self.right_buffer.text = self.inserted_command + " - " + str(self.right_buffer.text.splitlines()[-1])
+
+        char_count = len(self.right_buffer.text.splitlines()[-1]) + 1
+        self.right_buffer.cursor_right(char_count)
 
     def check_send_command(self, command):
         """
@@ -336,6 +345,7 @@ class GuiController:
             if not exists(self.serial_dev_path) and not self.simulator_mode:
                 UPDATE_LOG_FLAG = False
                 msg = f"ERROR: {self.serial_dev_path} is not connected."
+                self.right_buffer.text += '\n'
                 self.right_buffer.text += "-" * len(msg)
                 self.right_buffer.text += "\n"
                 self.right_buffer.text += msg
@@ -375,10 +385,8 @@ class GuiController:
                 if incoming_packet is None:
                     incoming_packet = ""
             self.check_incoming_packet(incoming_packet)
-
             self.right_buffer.text += incoming_packet
             OUTPUT_LOG = self.right_buffer.text
-            time.sleep(0.0002)
 
     def check_incoming_packet(self, incoming_packet):
         """
@@ -485,10 +493,19 @@ def _(_):
     LICENSE = True
 
 
-@kb.add("enter", eager=True)
+@kb.add("c-m", eager=True)
 def _(_):
     """
     Pressing Enter
     """
     global SEND_COMMAND  # pylint: disable=global-statement,W0602
     SEND_COMMAND = True
+
+
+@kb.add("s-tab",  eager=True)
+def _(_):
+    """
+    Pressing Shift-Tab Enter Debug Mode
+    """
+    global DEBUG_MODE  # pylint: disable=global-statement,W0602
+    DEBUG_MODE = not DEBUG_MODE

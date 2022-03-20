@@ -2,12 +2,15 @@
 """
     placeholder
 """
-# import sys
-# import time
+import os
 
 import serial
 
 from support.exceptions import SerialDeviceOpenError  # pylint: disable=E0401
+
+# import time
+
+
 
 
 class SerialManager:
@@ -60,9 +63,7 @@ class SerialManager:
         if self.ser.inWaiting():
             line = self.ser.readline()
             if line:
-                output = line[:-1].decode('UTF-8').rstrip()
-                output = output + '\n'
-                return output
+                return line.decode('UTF-8')
         return ""
 
     def exe_command(self, command):
