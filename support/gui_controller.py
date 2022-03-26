@@ -8,7 +8,7 @@ from os.path import exists
 from threading import Thread
 
 import pyperclip
-from prompt_toolkit.application import Application
+from prompt_toolkit.application import Application, get_app
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.key_binding import KeyBindings
@@ -18,7 +18,6 @@ from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.lexers import PygmentsLexer
 from pygments.lexers.console import PyPyLogLexer
-# from pygments.lexers.teal import TealLexer
 from pygments.lexers.templates import Angular2Lexer
 from pygments.lexers.textedit import VimLexer
 
@@ -30,9 +29,6 @@ from support.serial_simulator import \
     random_text_generator  # pylint: disable=E0401
 from support.version import __version__  # pylint: disable=E0401
 
-FIND_UNIQUE_KEY = '/*'
-FIND_STOP_UNIQUE_KEY = '/@'
-
 UPDATE_LOG_FLAG = False
 CLEAR_LOG = False
 OUTPUT_LOG = ""
@@ -43,7 +39,6 @@ HIGHLIGHT = False
 HIGHLIGHT_STRING = ""
 # highlight stop
 HIGHLIGHT_STOP = False
-HIGHLIGHT_STOP_STRING = ""
 # capture
 CAPTURE = False
 CAPTURE_LOG = ""
@@ -74,16 +69,16 @@ def get_options_text():
     :return:
     """
     return [
-        ("class:title fg:darkred", " [Control+Q]     - Quit \n"),
-        ("class:title fg:yellow", " [Control+X]     - Clear Log \n"),
-        ("class:title fg:yellow", " [Control+S]     - Export to file \n"),
-        ("class:title fg:yellow", " [Control+W]     - Start/Stop capture \n"),
-        ("class:title fg:yellow", " [Control+C]     - Copy All in clipboard \n"),
-        ("class:title fg:cyan", " [" + FIND_UNIQUE_KEY + "search_str]  - Highlight Pattern \n"),
-        ("class:title fg:cyan", " [" + FIND_STOP_UNIQUE_KEY + "search_str]  - Find and Stop \n"),
-        ("class:title fg:green", " [Control+L]     - Show License \n"),
-        ("class:title fg:green", " [Control+H]     - Help \n"),
-        ("class:title fg:purple", " [Alt+Tab]       - Debug \n"),
+        ("class:title fg:darkred", " [Control+Q] - Quit \n"),
+        ("class:title fg:yellow", " [Control+X] - Clear Log \n"),
+        ("class:title fg:yellow", " [Control+S] - Export to file \n"),
+        ("class:title fg:yellow", " [Control+W] - Start/Stop capture \n"),
+        ("class:title fg:yellow", " [Control+C] - Copy All in clipboard \n"),
+        ("class:title fg:cyan", " [Control+F] - Highlight Pattern \n"),
+        ("class:title fg:cyan", " [Control+G] - Find and Stop \n"),
+        ("class:title fg:green", " [Control+L] - Show License \n"),
+        ("class:title fg:green", " [Control+H] - Help \n"),
+        ("class:title fg:blue", " [Alt+Tab]   - Debug \n"),
     ]
 
 
@@ -109,6 +104,7 @@ class GuiController:
         self.simulator_mode = simulator_mode
         self.serial_dev_path = serial_device_path
         self.inserted_command: str = ""
+        self.search_input: str = ""
 
         if not simulator_mode:
             # Serial device
@@ -123,12 +119,16 @@ class GuiController:
         self.left_buffer = Buffer()
         self.right_buffer = Buffer()
         self.status_buffer = Buffer()
+        self.search_buffer = Buffer()
+
         self.left_window = Window(BufferControl(buffer=self.left_buffer,
                                                 lexer=PygmentsLexer(VimLexer)), width=10)
         self.status_window = Window(BufferControl(buffer=self.status_buffer,
                                                   lexer=PygmentsLexer(PyPyLogLexer)), height=1)
         self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(Angular2Lexer),
-                                                 focus_on_click=True), wrap_lines=True, )
+                                                 focus_on_click=True), wrap_lines=True, style='class:border')
+        self.search_window = Window(BufferControl(buffer=self.search_buffer,
+                                                  lexer=PygmentsLexer(PyPyLogLexer)), height=1, style='class:border')
         self.body = \
             HSplit(
                 [
@@ -146,6 +146,16 @@ class GuiController:
                                            content=FormattedTextControl(get_options_text()),
                                            align=WindowAlign.LEFT),
                                     # Horizontal separator.
+                                    Window(height=1, char="-", style="class:line"),
+                                    Window(height=1, content=FormattedTextControl([("class:line",
+                                                                                    "[Tab] Search feild")]),
+                                           style="class:title",
+                                           align=WindowAlign.CENTER),
+                                    Window(height=1, char="-", style="class:line"),
+                                    VSplit([
+                                        Window(width=2, char="||", style="class:line"),
+                                        self.search_window,
+                                        Window(width=2, char="||", style="class:line"), ]),
                                     Window(height=1, char="-", style="class:line"),
                                     Window(height=1, content=FormattedTextControl([("class:line",
                                                                                     "Commands History")]),
@@ -203,6 +213,7 @@ class GuiController:
         self.connection_info = f"device {serial_device_path} opened successfully. {serial_device_baudrate}"
         self.right_buffer.on_text_changed += self.update_log_cursor
         self.right_buffer.on_text_insert += self.typing_command
+        self.search_buffer.on_text_insert += self.typing_search
 
         # Creating an `Application` instance
         # This glues everything together.
@@ -214,7 +225,7 @@ class GuiController:
             # Using an alternate screen buffer means as much as: "run full screen".
             # It switches the terminal to an alternate screen.
             full_screen=True,
-            cursor=CursorShape.BLINKING_BLOCK,
+            cursor=CursorShape.BLINKING_UNDERLINE,
             enable_page_navigation_bindings=True
         )
         # Config read thread
@@ -242,7 +253,6 @@ class GuiController:
         global HIGHLIGHT
         global HIGHLIGHT_STRING
         global HIGHLIGHT_STOP
-        global HIGHLIGHT_STOP_STRING
 
         if self.simulator_mode:
             return_var = "| Device:OPEN |"
@@ -255,8 +265,8 @@ class GuiController:
         if HIGHLIGHT:
             return_var += f" Search:ON:[{HIGHLIGHT_STRING}] |"
 
-        if HIGHLIGHT_STOP_STRING:
-            return_var += f" Search_Stop:ON:[{HIGHLIGHT_STOP_STRING}] |"
+        if HIGHLIGHT_STOP:
+            return_var += f" Search_Stop:ON:[{HIGHLIGHT_STRING}] |"
 
         if CAPTURE:
             return_var += " Capture:ON |"
@@ -266,9 +276,18 @@ class GuiController:
 
         return return_var
 
+    def typing_search(self, event):
+        """
+            typing_search
+        """
+        global HIGHLIGHT
+        global HIGHLIGHT_STRING
+        global DEBUG_MODE
+        self.search_input = HIGHLIGHT_STRING = self.search_buffer.text
+
     def typing_command(self, event):
         """
-            command_inserted
+            typing_command
         """
         self.inserted_command += event.text[-1]
 
@@ -284,13 +303,14 @@ class GuiController:
         """
         global DEBUG_MODE
 
-        if self.right_buffer.text[-1] == '\n' and len(self.right_buffer.text.splitlines()) > 1\
-                and self.inserted_command == "":
-            self.right_buffer.cursor_down()
-            if DEBUG_MODE:
-                self.right_buffer.text = self.inserted_command + " - " + str(self.right_buffer.text.splitlines()[-1])
+        # if self.right_buffer.text[-1] == '\n' and len(self.right_buffer.text.splitlines()) > 1\
+        #         and self.inserted_command == "":
+        #     self.right_buffer.cursor_down()
+        #     if DEBUG_MODE:
+        #         self.right_buffer.text = self.inserted_command + " - " + str(self.right_buffer.text.splitlines()[-1])
 
-        char_count = len(self.right_buffer.text.splitlines()[-1]) + 1
+        self.right_buffer.auto_down()
+        char_count = len(self.right_buffer.text.splitlines()[-1])
         self.right_buffer.cursor_right(char_count)
 
     def check_send_command(self, command):
@@ -301,27 +321,26 @@ class GuiController:
         global HIGHLIGHT
         global HIGHLIGHT_STRING
         global HIGHLIGHT_STOP
-        global HIGHLIGHT_STOP_STRING
         global UPDATE_LOG_FLAG
 
         if command == "\n":
             return
 
-        # if command and command[-1] == '\n':
-        if command[:len(FIND_UNIQUE_KEY)] == FIND_UNIQUE_KEY:
-            UPDATE_LOG_FLAG = False
-            HIGHLIGHT = True
-            HIGHLIGHT_STRING = command[len(FIND_UNIQUE_KEY):-1]
-            UPDATE_LOG_FLAG = True
-
-        elif command[:len(FIND_STOP_UNIQUE_KEY)] == FIND_STOP_UNIQUE_KEY:
-            UPDATE_LOG_FLAG = False
-            HIGHLIGHT_STOP = True
-            HIGHLIGHT_STOP_STRING = command[len(FIND_STOP_UNIQUE_KEY):-1]
-            UPDATE_LOG_FLAG = True
-        else:
-            if not self.simulator_mode:
-                self.ser_dev.exe_command(command)
+        # # if command and command[-1] == '\n':
+        # if command[:len(FIND_UNIQUE_KEY)] == FIND_UNIQUE_KEY:
+        #     UPDATE_LOG_FLAG = False
+        #     HIGHLIGHT = True
+        #     HIGHLIGHT_STRING = command[len(FIND_UNIQUE_KEY):-1]
+        #     UPDATE_LOG_FLAG = True
+        #
+        # elif command[:len(FIND_STOP_UNIQUE_KEY)] == FIND_STOP_UNIQUE_KEY:
+        #     UPDATE_LOG_FLAG = False
+        #     HIGHLIGHT_STOP = True
+        #     HIGHLIGHT_STOP_STRING = command[len(FIND_STOP_UNIQUE_KEY):-1]
+        #     UPDATE_LOG_FLAG = True
+        # else:
+        if not self.simulator_mode:
+            self.ser_dev.exe_command(command)
 
         self.left_buffer.text += '- ' + command
 
@@ -336,7 +355,6 @@ class GuiController:
         global HIGHLIGHT
         global HIGHLIGHT_STRING
         global HIGHLIGHT_STOP
-        global HIGHLIGHT_STOP_STRING
         global UPDATE_LOG_FLAG
         global LICENSE
         global SEND_COMMAND
@@ -385,7 +403,8 @@ class GuiController:
                 if incoming_packet is None:
                     incoming_packet = ""
             self.check_incoming_packet(incoming_packet)
-            self.right_buffer.text += incoming_packet
+            self.right_buffer.text += incoming_packet.replace('\r', '').replace('^M', '').replace('\b', '')
+            # self.right_buffer.append_to_history()
             OUTPUT_LOG = self.right_buffer.text
 
     def check_incoming_packet(self, incoming_packet):
@@ -395,7 +414,6 @@ class GuiController:
         global HIGHLIGHT
         global HIGHLIGHT_STRING
         global HIGHLIGHT_STOP
-        global HIGHLIGHT_STOP_STRING
         global UPDATE_LOG_FLAG
         global CAPTURE
         global CAPTURE_LOG
@@ -405,17 +423,18 @@ class GuiController:
         if HIGHLIGHT and HIGHLIGHT_STRING:
             found = incoming_packet.find(HIGHLIGHT_STRING)
             if found > 0:
-                raw_log = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\0\0' + \
-                          incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + \
+                # '\x1b[6;30;42m' + + '\x1b[0m'
+                raw_log = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\x1b[6;30;42m' + '\0\0' + \
+                          incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + '\x1b[0m' + \
                           incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
                 self.right_buffer.text += raw_log
 
-        if HIGHLIGHT_STOP and HIGHLIGHT_STOP_STRING:
-            found = incoming_packet.find(HIGHLIGHT_STOP_STRING)
+        if HIGHLIGHT_STOP and HIGHLIGHT_STRING:
+            found = incoming_packet.find(HIGHLIGHT_STRING)
             if found > 0:
-                raw_log = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\0\0' + \
-                          incoming_packet[found:found + len(HIGHLIGHT_STOP_STRING)] + '\0\0' + \
-                          incoming_packet[found + len(HIGHLIGHT_STOP_STRING):-1] + '\n\n\n'
+                raw_log = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\x1b[6;30;42m' + '\0\0' + \
+                          incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + '\x1b[0m' + \
+                          incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
                 self.right_buffer.text += raw_log
                 UPDATE_LOG_FLAG = False
 
@@ -502,10 +521,37 @@ def _(_):
     SEND_COMMAND = True
 
 
-@kb.add("s-tab",  eager=True)
+@kb.add("s-tab", eager=True)
 def _(_):
     """
     Pressing Shift-Tab Enter Debug Mode
     """
     global DEBUG_MODE  # pylint: disable=global-statement,W0602
     DEBUG_MODE = not DEBUG_MODE
+
+
+@kb.add("c-g", eager=True)
+def _(_):
+    """
+    Pressing Ctrl-G
+    """
+    global HIGHLIGHT_STOP  # pylint: disable=global-statement,W0602
+    HIGHLIGHT_STOP = not HIGHLIGHT_STOP
+
+
+@kb.add("c-f", eager=True)
+def _(_):
+    """
+    Pressing Ctrl-F
+    """
+    global HIGHLIGHT  # pylint: disable=global-statement,W0602
+    HIGHLIGHT = not HIGHLIGHT
+
+
+@kb.add("tab", eager=True)
+def _(_):
+    """
+    Pressing Tab
+    """
+    get_app().layout.focus_next()
+    get_app().layout.focus_next()

@@ -61,9 +61,12 @@ class SerialManager:
             read
         """
         if self.ser.inWaiting():
-            line = self.ser.readline()
-            if line:
-                return line.decode('UTF-8')
+            char = self.ser.read_until()
+            if char:
+                try:
+                    return char.decode('utf8')
+                except:  # todo
+                    return "[Unable to read]"
         return ""
 
     def exe_command(self, command):
