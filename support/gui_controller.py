@@ -49,6 +49,9 @@ LICENSE = False
 SEND_COMMAND = False
 # debug
 DEBUG_MODE = False
+DEBUG_MODE_TEXT = False
+# tab
+TAB_PRESSED = False
 
 
 def get_titlebar_text(custom_msg):
@@ -78,7 +81,7 @@ def get_options_text():
         ("class:title fg:cyan", " [Control+G] - Find and Stop \n"),
         ("class:title fg:green", " [Control+L] - Show License \n"),
         ("class:title fg:green", " [Control+H] - Help \n"),
-        ("class:title fg:blue", " [Alt+Tab]   - Debug \n"),
+        ("class:title fg:blue", " [Shift+Tab] - Debug \n"),
     ]
 
 
@@ -221,7 +224,7 @@ class GuiController:
             layout=Layout(self.root_container, focused_element=self.right_window),
             key_bindings=kb,
             # Let's add mouse support!
-            mouse_support=True,
+            mouse_support=False,
             # Using an alternate screen buffer means as much as: "run full screen".
             # It switches the terminal to an alternate screen.
             full_screen=True,
@@ -253,6 +256,7 @@ class GuiController:
         global HIGHLIGHT
         global HIGHLIGHT_STRING
         global HIGHLIGHT_STOP
+        global DEBUG_MODE_TEXT
 
         if self.simulator_mode:
             return_var = "| Device:OPEN |"
@@ -272,7 +276,7 @@ class GuiController:
             return_var += " Capture:ON |"
 
         if DEBUG_MODE:
-            return_var += " DEBUG_MODE:ON |"
+            return_var += F" DEBUG_MODE:ON:[{DEBUG_MODE_TEXT}|"
 
         return return_var
 
@@ -282,14 +286,17 @@ class GuiController:
         """
         global HIGHLIGHT
         global HIGHLIGHT_STRING
-        global DEBUG_MODE
         self.search_input = HIGHLIGHT_STRING = self.search_buffer.text
 
     def typing_command(self, event):
         """
             typing_command
         """
+        global DEBUG_MODE
+        global DEBUG_MODE_TEXT
         self.inserted_command += event.text[-1]
+        if DEBUG_MODE:
+            DEBUG_MODE_TEXT += event.text[-1]
 
     def update_log_cursor(self, _):  # pylint: disable=R0201
         """
@@ -301,19 +308,11 @@ class GuiController:
         """
         update_cursor
         """
-        global DEBUG_MODE
-
-        # if self.right_buffer.text[-1] == '\n' and len(self.right_buffer.text.splitlines()) > 1\
-        #         and self.inserted_command == "":
-        #     self.right_buffer.cursor_down()
-        #     if DEBUG_MODE:
-        #         self.right_buffer.text = self.inserted_command + " - " + str(self.right_buffer.text.splitlines()[-1])
-
         self.right_buffer.auto_down()
         char_count = len(self.right_buffer.text.splitlines()[-1])
         self.right_buffer.cursor_right(char_count)
 
-    def check_send_command(self, command):
+    def send_command(self, command):
         """
         When the buffer on the left changes, update the buffer on
         the right. We just reverse the text.
@@ -326,19 +325,6 @@ class GuiController:
         if command == "\n":
             return
 
-        # # if command and command[-1] == '\n':
-        # if command[:len(FIND_UNIQUE_KEY)] == FIND_UNIQUE_KEY:
-        #     UPDATE_LOG_FLAG = False
-        #     HIGHLIGHT = True
-        #     HIGHLIGHT_STRING = command[len(FIND_UNIQUE_KEY):-1]
-        #     UPDATE_LOG_FLAG = True
-        #
-        # elif command[:len(FIND_STOP_UNIQUE_KEY)] == FIND_STOP_UNIQUE_KEY:
-        #     UPDATE_LOG_FLAG = False
-        #     HIGHLIGHT_STOP = True
-        #     HIGHLIGHT_STOP_STRING = command[len(FIND_STOP_UNIQUE_KEY):-1]
-        #     UPDATE_LOG_FLAG = True
-        # else:
         if not self.simulator_mode:
             self.ser_dev.exe_command(command)
 
@@ -358,6 +344,7 @@ class GuiController:
         global UPDATE_LOG_FLAG
         global LICENSE
         global SEND_COMMAND
+        global TAB_PRESSED
 
         while UPDATE_LOG_FLAG:
             if not exists(self.serial_dev_path) and not self.simulator_mode:
@@ -385,9 +372,13 @@ class GuiController:
                     self.right_buffer.text += str(data)
                     self.right_buffer.text += "\n\nPlease close the program and re-open.\n\n"
 
+            if TAB_PRESSED:
+                self.send_command(self.inserted_command + "\t")
+                TAB_PRESSED = False
+
             if SEND_COMMAND:
                 # self.right_buffer.text += "\n"
-                self.check_send_command(self.inserted_command + "\n")
+                self.send_command(self.inserted_command + "\n")
                 self.inserted_command = ""
                 SEND_COMMAND = False
 
@@ -403,7 +394,8 @@ class GuiController:
                 if incoming_packet is None:
                     incoming_packet = ""
             self.check_incoming_packet(incoming_packet)
-            self.right_buffer.text += incoming_packet.replace('\r', '').replace('^M', '').replace('\b', '')
+            self.right_buffer.text += incoming_packet.replace('\r', '').replace('^M', '').replace('\b', '')\
+                .replace('\t', '')
             # self.right_buffer.append_to_history()
             OUTPUT_LOG = self.right_buffer.text
 
@@ -527,7 +519,9 @@ def _(_):
     Pressing Shift-Tab Enter Debug Mode
     """
     global DEBUG_MODE  # pylint: disable=global-statement,W0602
+    global DEBUG_MODE_TEXT  # pylint: disable=global-statement,W0602
     DEBUG_MODE = not DEBUG_MODE
+    DEBUG_MODE_TEXT = ''
 
 
 @kb.add("c-g", eager=True)
@@ -537,6 +531,8 @@ def _(_):
     """
     global HIGHLIGHT_STOP  # pylint: disable=global-statement,W0602
     HIGHLIGHT_STOP = not HIGHLIGHT_STOP
+    get_app().layout.focus_next()
+    get_app().layout.focus_next()
 
 
 @kb.add("c-f", eager=True)
@@ -546,12 +542,14 @@ def _(_):
     """
     global HIGHLIGHT  # pylint: disable=global-statement,W0602
     HIGHLIGHT = not HIGHLIGHT
+    get_app().layout.focus_next()
+    get_app().layout.focus_next()
 
 
-@kb.add("tab", eager=True)
+@kb.add("c-i", eager=True)
 def _(_):
     """
     Pressing Tab
     """
-    get_app().layout.focus_next()
-    get_app().layout.focus_next()
+    global TAB_PRESSED  # pylint: disable=global-statement,W0602
+    TAB_PRESSED = True

@@ -73,5 +73,5 @@ class SerialManager:
         """
             execute a serial commands
         """
-        self.ser.write(command.encode('UTF-8'))
+        self.ser.write(command.encode())
         self.ser.flush()
