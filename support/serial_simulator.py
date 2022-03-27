@@ -15,11 +15,6 @@ def get_random_string():
     """
     line = random.choice(lines)
     return str(line)
-    # # choose from all lowercase letter
-    # letters = string.ascii_letters + string.digits + string.punctuation
-    # result_str = ''.join(random.choice(letters) + (" " if i % 2 == 2 else "") for i in range(length))
-    # return result_str
-
 
 def random_text_generator():
     """

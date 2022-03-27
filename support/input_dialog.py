@@ -6,9 +6,6 @@
 from prompt_toolkit.shortcuts import input_dialog
 from prompt_toolkit.styles import Style
 
-# from prompt_toolkit.completion import Completer, Completion, FuzzyCompleter
-# from prompt_toolkit.completion import WordCompleter
-
 example_style = Style.from_dict({
     'dialog': 'bg:#2596be',
     'dialog frame.label': 'bg:#ffffff #000000',

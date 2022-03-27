@@ -8,8 +8,6 @@ import os
 import sys
 from os.path import exists
 
-from prompt_toolkit.completion import WordCompleter
-
 from support.gui_controller import GuiController
 from support.input_dialog import InputDialog
 from support.message_dialog import MessageDialog

@@ -297,7 +297,7 @@ class GuiController:
 
         return return_var
 
-    def typing_search(self, event):
+    def typing_search(self, _):
         """
             typing_search this event is called when the user is typing in the search field
         """
