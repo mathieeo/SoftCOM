@@ -65,6 +65,8 @@ DEBUG_MODE_TEXT = False
 TAB_PRESSED = False
 # SHOW_HELP is used to show the help string
 SHOW_HELP = False
+# PAUSE_LOGGING is used to pause the incoming output log useful for ignoring unwanted logs
+PAUSE_LOGGING = False
 
 
 def get_titlebar_text(custom_msg):
@@ -86,6 +88,7 @@ def get_options_text():
     return [
         ("class:title fg:darkred", " [Control+Q] - Quit \n"),
         ("class:title fg:yellow", " [Control+X] - Clear Log \n"),
+        ("class:title fg:green", " [Control+P] - Pause Logging \n"),
         ("class:title fg:yellow", " [Control+S] - Export to file \n"),
         ("class:title fg:yellow", " [Control+W] - Start/Stop capture \n"),
         ("class:title fg:yellow", " [Control+C] - Copy All in clipboard \n"),
@@ -373,6 +376,7 @@ class GuiController:
         global LICENSE
         global SEND_COMMAND
         global TAB_PRESSED
+        global SHOW_HELP
 
         while UPDATE_LOG_FLAG:
             # first iteration? check if the device is still connected.
@@ -406,6 +410,7 @@ class GuiController:
 
             # if the user requested the help string
             if SHOW_HELP:
+                SHOW_HELP = False
                 # open text file in read mode
                 with open("HELP", "r", encoding='UTF-8') as file:
                     # read whole license to a string
@@ -432,23 +437,25 @@ class GuiController:
                 self.right_buffer.reset()
                 CLEAR_LOG = False
 
-            # if simulator mode then get the next packet from simulator object.
-            if self.simulator_mode:
-                incoming_packet = random_text_generator()
-                time.sleep(0.2)
-            else:
-                # perform serial read
-                incoming_packet = self.ser_dev.read()
-                # if nothing came from the serial object we force the packet to be str and empty
-                if incoming_packet is None:
-                    incoming_packet = ""
-            # check the incoming packet for a search and search stop feature.
-            self.check_incoming_packet(incoming_packet)
-            # append the incoming packet to the output log
-            self.right_buffer.text += incoming_packet.replace('\r', '').replace('^M', '').replace('\b', '') \
-                .replace('\t', '')
-            # update the output_log for exporting if needed.
-            OUTPUT_LOG = self.right_buffer.text
+            # if the user requested to stop the logging?
+            if not PAUSE_LOGGING:
+                # if simulator mode then get the next packet from simulator object.
+                if self.simulator_mode:
+                    incoming_packet = random_text_generator()
+                    time.sleep(0.2)
+                else:
+                    # perform serial read
+                    incoming_packet = self.ser_dev.read()
+                    # if nothing came from the serial object we force the packet to be str and empty
+                    if incoming_packet is None:
+                        incoming_packet = ""
+                # check the incoming packet for a search and search stop feature.
+                self.check_incoming_packet(incoming_packet)
+                # append the incoming packet to the output log
+                self.right_buffer.text += incoming_packet.replace('\r', '').replace('^M', '').replace('\b', '') \
+                    .replace('\t', '')
+                # update the output_log for exporting if needed.
+                OUTPUT_LOG = self.right_buffer.text
 
     def check_incoming_packet(self, incoming_packet):
         """
@@ -615,3 +622,14 @@ def _(_):
     """
     global SHOW_HELP  # pylint: disable=global-statement,W0602
     SHOW_HELP = True
+
+
+@kb.add("c-p", eager=True)
+def _(_):
+    """
+    Pressing+P to pause the incoming output log
+    """
+    global PAUSE_LOGGING  # pylint: disable=global-statement,W0602
+    global UPDATE_LOG_FLAG  # pylint: disable=global-statement,W0602
+    PAUSE_LOGGING = not PAUSE_LOGGING
+    UPDATE_LOG_FLAG = not PAUSE_LOGGING

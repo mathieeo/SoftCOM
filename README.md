@@ -105,6 +105,7 @@ _Below is an example of how you can instruct your audience on installing and set
 |:------------------:|:---------:|:--------------------------------------------------------:|
 |        Quit        | Control+Q |                   Quit the application                   |
 |     Clear Log      | Control+X |                  Clears the output log                   |
+|     Pauses Log     | Control+P |                 Pause the output logging                 |
 |   Export to File   | Control+S |             Export the output log to a file              |
 | Start/Stop Capture | Control+W |   Start the capture mode. Save portion of output log.    |
 | Copy to Clipboard  | Control+C |           Copy the entire log to the clipboard           |
