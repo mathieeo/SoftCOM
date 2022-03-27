@@ -17,7 +17,7 @@ from prompt_toolkit.layout.containers import (HSplit, VSplit, Window,
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.lexers import PygmentsLexer
-from pygments.lexers.console import PyPyLogLexer
+from pygments.lexers.automation import AutoItLexer
 from pygments.lexers.templates import Angular2Lexer
 from pygments.lexers.textedit import VimLexer
 
@@ -74,8 +74,7 @@ def get_titlebar_text(custom_msg):
     :return: the formatted string
     """
     return [
-        ("class:title bg:darkred", f" Serial App v{__version__} - "),
-        ("class:title bg:darkred", custom_msg + " "),
+        ("class:title bg:darkgreen", " [" + custom_msg + "] "),
     ]
 
 
@@ -144,11 +143,11 @@ class GuiController:
         self.left_window = Window(BufferControl(buffer=self.left_buffer,
                                                 lexer=PygmentsLexer(VimLexer)), width=10)
         self.status_window = Window(BufferControl(buffer=self.status_buffer,
-                                                  lexer=PygmentsLexer(PyPyLogLexer)), height=1)
-        self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(Angular2Lexer),
+                                                  lexer=PygmentsLexer(Angular2Lexer)), height=1)
+        self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(AutoItLexer),
                                                  focus_on_click=True), wrap_lines=True, style='class:border')
         self.search_window = Window(BufferControl(buffer=self.search_buffer,
-                                                  lexer=PygmentsLexer(PyPyLogLexer)), height=1, style='class:border')
+                                                  lexer=PygmentsLexer(Angular2Lexer)), height=1, style='class:border')
         # Define the layout for the GUI
         self.body = \
             HSplit(
@@ -186,11 +185,11 @@ class GuiController:
                                     self.left_window,
                                     Window(height=1, char="-", style="class:line"),
                                     Window(height=1, content=FormattedTextControl(
-                                        [("class:title bg:black fg:red", "Integrated Software Technologies Inc.")]),
+                                        [("class:title bg:darkred", " Integrated Software Technologies Inc. ")]),
                                            style="class:title",
                                            align=WindowAlign.CENTER),
                                     Window(height=1, content=FormattedTextControl(
-                                        [("class:title bg:black fg:red", "http://integratedsw.tech")]),
+                                        [("class:title bg:darkred", " http://integratedsw.tech ")]),
                                            style="class:title",
                                            align=WindowAlign.CENTER),
                                 ]),
@@ -214,7 +213,16 @@ class GuiController:
                            style="class:title",
                            align=WindowAlign.CENTER),
                     Window(height=1, char="-", style="class:line"),
-                    self.status_window
+                    VSplit(
+                        [
+
+                            self.status_window,
+                            Window(height=1, content=FormattedTextControl([("class:line bg:darkblue",
+                                                                            f'  SerialApp v{__version__}  ')]),
+                                   style="class:title",
+                                   align=WindowAlign.RIGHT),
+                        ]
+                    ),
                 ])
 
         self.root_container = HSplit(
