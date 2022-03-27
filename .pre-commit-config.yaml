@@ -7,15 +7,15 @@ repos:
     rev: 'v5.9.1'  # Use the revision sha / tag you want to point at
     hooks:
     -   id: isort
-#- repo: local
-#  hooks:
-#    - id: pylint
-#      name: pylint
-#      entry: pylint
-#      language: system
-#      types: [python]
-#      args:
-#        [
-#          "-rn", # Only display messages
-#          "-sn", # Don't display the score
-#        ]
+- repo: local
+  hooks:
+    - id: pylint
+      name: pylint
+      entry: pylint
+      language: system
+      types: [python]
+      args:
+        [
+          "-rn", # Only display messages
+          "-sn", # Don't display the score
+        ]
