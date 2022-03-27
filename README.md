@@ -92,13 +92,27 @@ _Below is an example of how you can instruct your audience on installing and set
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Application arguments:
+###Application arguments:
 
 |  Argument   | pram |      Description      |
 |:-----------:|:----:|:---------------------:|
 | --simulator |  -s  | Run in simulator mode |
 | --simulator |  -s  | Run in simulator mode |
 
+###in-app Options:
+
+|       Option       |    Key    |                       Description                        |
+|:------------------:|:---------:|:--------------------------------------------------------:|
+|        Quit        | Control+Q |                   Quit the application                   |
+|     Clear Log      | Control+X |                  Clears the output log                   |
+|   Export to File   | Control+S |             Export the output log to a file              |
+| Start/Stop Capture | Control+W |   Start the capture mode. Save portion of output log.    |
+| Copy to Clipboard  | Control+C |           Copy the entire log to the clipboard           |
+| Highlight Pattern  | Control+S |          Search and find for a specific string           |
+|   Find and Stop    | Control+G | Search and find for a specific string and stop if found. |
+|    Show License    | Control+L |          Show the license for this application.          |
+|        Help        | Control+H |                Used to show help string.                 |
+|       Debug        | Shift+Tab |                    Used for debuting.                    |
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

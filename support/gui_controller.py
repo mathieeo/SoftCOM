@@ -63,6 +63,8 @@ DEBUG_MODE = False
 DEBUG_MODE_TEXT = False
 # TAB_PRESSED is used to switch the fours from output log to the search editbox
 TAB_PRESSED = False
+# SHOW_HELP is used to show the help string
+SHOW_HELP = False
 
 
 def get_titlebar_text(custom_msg):
@@ -394,6 +396,16 @@ class GuiController:
                     self.right_buffer.text += str(data)
                     self.right_buffer.text += "\n\nPlease close the program and re-open.\n\n"
 
+            # if the user requested the help string
+            if SHOW_HELP:
+                # open text file in read mode
+                with open("HELP", "r", encoding='UTF-8') as file:
+                    # read whole license to a string
+                    data = file.read()
+                    # close file
+                    file.close()
+                    self.right_buffer.text += ('\n\n' + str(data) + '\n\n')
+
             # if the user pressed on TAB (auto-complete?)
             if TAB_PRESSED:
                 self.send_command(self.inserted_command + "\t")
@@ -425,7 +437,7 @@ class GuiController:
             # check the incoming packet for a search and search stop feature.
             self.check_incoming_packet(incoming_packet)
             # append the incoming packet to the output log
-            self.right_buffer.text += incoming_packet.replace('\r', '').replace('^M', '').replace('\b', '')\
+            self.right_buffer.text += incoming_packet.replace('\r', '').replace('^M', '').replace('\b', '') \
                 .replace('\t', '')
             # update the output_log for exporting if needed.
             OUTPUT_LOG = self.right_buffer.text
@@ -586,3 +598,12 @@ def _(_):
     """
     global TAB_PRESSED  # pylint: disable=global-statement,W0602
     TAB_PRESSED = True
+
+
+@kb.add("c-h", eager=True)
+def _(_):
+    """
+    Pressing [Tab] to switch to search input field
+    """
+    global SHOW_HELP  # pylint: disable=global-statement,W0602
+    SHOW_HELP = True
