@@ -86,9 +86,9 @@ def get_options_text():
     :return: the formatted string
     """
     return [
-        ("class:title fg:darkred", " [Control+Q] - Quit \n"),
+        ("class:title fg:red", " [Control+Q] - Quit \n"),
         ("class:title fg:yellow", " [Control+X] - Clear Log \n"),
-        ("class:title fg:green", " [Control+P] - Pause Logging \n"),
+        ("class:title fg:yellow", " [Control+P] - Pause Logging \n"),
         ("class:title fg:yellow", " [Control+S] - Export to file \n"),
         ("class:title fg:yellow", " [Control+W] - Start/Stop capture \n"),
         ("class:title fg:yellow", " [Control+C] - Copy All in clipboard \n"),
@@ -96,7 +96,7 @@ def get_options_text():
         ("class:title fg:cyan", " [Control+G] - Find and Stop \n"),
         ("class:title fg:green", " [Control+L] - Show License \n"),
         ("class:title fg:green", " [Control+H] - Help \n"),
-        ("class:title fg:blue", " [Shift+Tab] - Debug \n"),
+        ("class:title fg:darkblue", " [Shift+Tab] - Debug \n"),
     ]
 
 
