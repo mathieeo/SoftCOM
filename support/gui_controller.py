@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-    Placeholder
+    GUI Controller mainly used to manage the CLI GUI components and handling the serial device I/O interface.
 """
 import sys
 import time
@@ -29,36 +29,47 @@ from support.serial_simulator import \
     random_text_generator  # pylint: disable=E0401
 from support.version import __version__  # pylint: disable=E0401
 
+# Global parameters mainly used for state-machine cases where the software needs to interrupt the working thread.
+
+# UPDATE_LOG_FLAG used to determine whether the software is fetching the incoming packets
 UPDATE_LOG_FLAG = False
+# CLEAR_LOG is used to determine the software that a clear flag was set to clear the output log buffer.
 CLEAR_LOG = False
+# OUTPUT_LOG is used for exporting the output log message to a file globally.
 OUTPUT_LOG = ""
+# LOG_FILE_COUNTER is mainly used for counting the number of times the software exported a file also it used
+# as a prefix for the exported file name.
 LOG_FILE_COUNTER = 0
-CAPTURE_LOG_FILE_COUNTER = 0
-# highlight
+# HIGHLIGHT is mainly used when user is searching for a string.
 HIGHLIGHT = False
-HIGHLIGHT_STRING = ""
-# highlight stop
+# HIGHLIGHT_STOP similar to the HIGHLIGHT this variable used for the search and stop feature.
 HIGHLIGHT_STOP = False
-# capture
+# HIGHLIGHT_STRING is used for the input search string that was entered by the user.
+HIGHLIGHT_STRING = ""
+# CAPTURE is used to capture a certain part of the log and the time for logging is started and stopped by the user
 CAPTURE = False
+# CAPTURE_LOG is the log string that holds the log buffer. it will be exported to a file.
 CAPTURE_LOG = ""
+# CAPTURE_MSG_FLAG is used for print and messaging purposes
 CAPTURE_MSG_FLAG = False
-# license
+# CAPTURE_LOG_FILE_COUNTER similar to the LOG_FILE_COUNTER but used for the capture feature.
+CAPTURE_LOG_FILE_COUNTER = 0
+# LICENSE is a flag that determines the user requesting the license
 LICENSE = False
-# command
+# SEND_COMMAND is used for signaling the software that user entered a command to serial device.
 SEND_COMMAND = False
-# debug
+# DEBUG_MODE is used for debuting purposes
 DEBUG_MODE = False
 DEBUG_MODE_TEXT = False
-# tab
+# TAB_PRESSED is used to switch the fours from output log to the search editbox
 TAB_PRESSED = False
 
 
 def get_titlebar_text(custom_msg):
     """
-
-    :param custom_msg:
-    :return:
+        This global function is used to get the header message for the CLI-GUI
+    :param custom_msg: if mainly used to pass the device name is baud-rate.
+    :return: the formatted string
     """
     return [
         ("class:title bg:darkred", f" Serial App v{__version__} - "),
@@ -68,8 +79,8 @@ def get_titlebar_text(custom_msg):
 
 def get_options_text():
     """
-
-    :return:
+        This global function is used to get the list of options string for the CLI-GUI
+    :return: the formatted string
     """
     return [
         ("class:title fg:darkred", " [Control+Q] - Quit \n"),
@@ -92,23 +103,27 @@ kb = KeyBindings()
 class GuiController:
     # pylint: disable=global-statement,global-variable-not-assigned,R0902
     """
-        GuiController
+        GuiController is the class responsible for managing the CLI-GUI components and the serial device interface.
     """
 
     def __init__(self, serial_device_path, serial_device_baudrate, simulator_mode: bool):
         """
-            __Init__
+            initial method responsible for starting and configuring the default values and
+            the necessary configurations
         """
         global UPDATE_LOG_FLAG
         global HIGHLIGHT
         global HIGHLIGHT_STOP
 
-        # prams
+        # simulator mode holds the simulator mode state
         self.simulator_mode = simulator_mode
+        # hold the device path
         self.serial_dev_path = serial_device_path
+        # some variables must be set to default
         self.inserted_command: str = ""
         self.search_input: str = ""
 
+        # if not simulator mode try to open the serial device if failed raise a flag
         if not simulator_mode:
             # Serial device
             self.ser_dev = SerialManager(serial_device_path, serial_device_baudrate)
@@ -123,7 +138,7 @@ class GuiController:
         self.right_buffer = Buffer()
         self.status_buffer = Buffer()
         self.search_buffer = Buffer()
-
+        # Create the windows for the buffers
         self.left_window = Window(BufferControl(buffer=self.left_buffer,
                                                 lexer=PygmentsLexer(VimLexer)), width=10)
         self.status_window = Window(BufferControl(buffer=self.status_buffer,
@@ -132,6 +147,7 @@ class GuiController:
                                                  focus_on_click=True), wrap_lines=True, style='class:border')
         self.search_window = Window(BufferControl(buffer=self.search_buffer,
                                                   lexer=PygmentsLexer(PyPyLogLexer)), height=1, style='class:border')
+        # Define the layout for the GUI
         self.body = \
             HSplit(
                 [
@@ -213,7 +229,9 @@ class GuiController:
                 self.body,
             ]
         )
+
         self.connection_info = f"device {serial_device_path} opened successfully. {serial_device_baudrate}"
+        # set the needed events
         self.right_buffer.on_text_changed += self.update_log_cursor
         self.right_buffer.on_text_insert += self.typing_command
         self.search_buffer.on_text_insert += self.typing_search
@@ -235,23 +253,22 @@ class GuiController:
         self.read_thread = Thread(target=self.periodic_update)
         #  Init globals
         UPDATE_LOG_FLAG = True
-        HIGHLIGHT = False
-        HIGHLIGHT_STOP = False
 
+        # start the read thread
         self.read_thread.start()
         # Run the interface. (This runs the event loop until Ctrl-Q is pressed.)
         self.application.run()
 
     def __del__(self):
         """
-            Del
+            Del for destroying the object
         """
         if not self.simulator_mode:
             self.ser_dev.close_dev()
 
     def get_status_text(self):
         """
-            get_status_text
+            get_status_text is used to define the status bar string.
         """
         global HIGHLIGHT
         global HIGHLIGHT_STRING
@@ -282,31 +299,32 @@ class GuiController:
 
     def typing_search(self, event):
         """
-            typing_search
+            typing_search this event is called when the user is typing in the search field
         """
-        global HIGHLIGHT
         global HIGHLIGHT_STRING
         self.search_input = HIGHLIGHT_STRING = self.search_buffer.text
 
     def typing_command(self, event):
         """
-            typing_command
+            typing_command this event is called when the user is typing in the output log field
         """
         global DEBUG_MODE
         global DEBUG_MODE_TEXT
+        # event holds the buffer and we want only thr last character
+        # todo backspace support?
         self.inserted_command += event.text[-1]
         if DEBUG_MODE:
             DEBUG_MODE_TEXT += event.text[-1]
 
     def update_log_cursor(self, _):  # pylint: disable=R0201
         """
-            update_log_curser
+            update_log_curser this event is used to update the cursor when a change occur to the output log field
         """
         self.update_cursor()
 
     def update_cursor(self):
         """
-        update_cursor
+        update_cursor this method used to check and update the cursor.
         """
         self.right_buffer.auto_down()
         char_count = len(self.right_buffer.text.splitlines()[-1])
@@ -314,8 +332,7 @@ class GuiController:
 
     def send_command(self, command):
         """
-        When the buffer on the left changes, update the buffer on
-        the right. We just reverse the text.
+        send_command is used to send the input command from output log field and perform serial write operation
         """
         global HIGHLIGHT
         global HIGHLIGHT_STRING
@@ -328,13 +345,14 @@ class GuiController:
         if not self.simulator_mode:
             self.ser_dev.exe_command(command)
 
+        # save the command to the history list
+        # todo maybe we need a key to browse through the history of commands
         self.left_buffer.text += '- ' + command
 
     def periodic_update(self):
         """
-
-        :param _:
-        :return:
+            periodic_update this method responsible for looping through the operation and what needed in next
+            iteration. it's the state-machine method.
         """
         global CLEAR_LOG
         global OUTPUT_LOG
@@ -347,6 +365,7 @@ class GuiController:
         global TAB_PRESSED
 
         while UPDATE_LOG_FLAG:
+            # first iteration? check if the device is still connected.
             if not exists(self.serial_dev_path) and not self.simulator_mode:
                 UPDATE_LOG_FLAG = False
                 msg = f"ERROR: {self.serial_dev_path} is not connected."
@@ -356,11 +375,14 @@ class GuiController:
                 self.right_buffer.text += msg
                 self.right_buffer.text += "\n"
                 self.right_buffer.text += "-" * len(msg)
+                # todo raise an exception
                 sys.exit(1)
 
+            # update the status
             self.status_buffer.reset()
             self.status_buffer.text = self.get_status_text()
 
+            # if the user requested the license
             if LICENSE:
                 # open text file in read mode
                 with open("LICENSE", "r", encoding='UTF-8') as file:
@@ -372,31 +394,40 @@ class GuiController:
                     self.right_buffer.text += str(data)
                     self.right_buffer.text += "\n\nPlease close the program and re-open.\n\n"
 
+            # if the user pressed on TAB (auto-complete?)
             if TAB_PRESSED:
                 self.send_command(self.inserted_command + "\t")
                 TAB_PRESSED = False
 
+            # Command is ready to the serial device. Command will be executed.
+            # todo remove the signal command with sending each char entered?
             if SEND_COMMAND:
                 # self.right_buffer.text += "\n"
                 self.send_command(self.inserted_command + "\n")
                 self.inserted_command = ""
                 SEND_COMMAND = False
 
+            # If user want to clear the log
             if CLEAR_LOG:
                 self.right_buffer.reset()
                 CLEAR_LOG = False
 
+            # if simulator mode then get the next packet from simulator object.
             if self.simulator_mode:
                 incoming_packet = random_text_generator()
                 time.sleep(0.2)
             else:
+                # perform serial read
                 incoming_packet = self.ser_dev.read()
+                # if nothing came from the serial object we force the packet to be str and empty
                 if incoming_packet is None:
                     incoming_packet = ""
+            # check the incoming packet for a search and search stop feature.
             self.check_incoming_packet(incoming_packet)
+            # append the incoming packet to the output log
             self.right_buffer.text += incoming_packet.replace('\r', '').replace('^M', '').replace('\b', '')\
                 .replace('\t', '')
-            # self.right_buffer.append_to_history()
+            # update the output_log for exporting if needed.
             OUTPUT_LOG = self.right_buffer.text
 
     def check_incoming_packet(self, incoming_packet):
@@ -412,6 +443,7 @@ class GuiController:
         global CAPTURE_MSG_FLAG
         global CAPTURE_LOG_FILE_COUNTER
 
+        # if search and search string is set then check if input string pattern found.
         if HIGHLIGHT and HIGHLIGHT_STRING:
             found = incoming_packet.find(HIGHLIGHT_STRING)
             if found > 0:
@@ -421,6 +453,7 @@ class GuiController:
                           incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
                 self.right_buffer.text += raw_log
 
+        # if search stop and search string is set then check if input string pattern found.
         if HIGHLIGHT_STOP and HIGHLIGHT_STRING:
             found = incoming_packet.find(HIGHLIGHT_STRING)
             if found > 0:
@@ -430,12 +463,12 @@ class GuiController:
                 self.right_buffer.text += raw_log
                 UPDATE_LOG_FLAG = False
 
+        # If capture is enabled then let's start log/save any upcoming packets.
         if CAPTURE:
             CAPTURE_LOG += incoming_packet
             if not CAPTURE_MSG_FLAG:
                 self.right_buffer.text += "\n\n------------------------Capture-Started------------------------\n"
                 CAPTURE_MSG_FLAG = True
-
         if not CAPTURE and CAPTURE_MSG_FLAG:
             with open(f'Capture_log{CAPTURE_LOG_FILE_COUNTER}.txt', 'w', encoding='UTF-8') as file:
                 CAPTURE_LOG_FILE_COUNTER += 1
@@ -489,7 +522,7 @@ def _(_):
 @kb.add("c-w", eager=True)
 def _(_):
     """
-    Pressing Ctrl-W
+    Pressing Ctrl-W Start/Stop the capture feature
     """
     global CAPTURE  # pylint: disable=global-statement,W0602
     CAPTURE = not CAPTURE
@@ -498,7 +531,7 @@ def _(_):
 @kb.add("c-l", eager=True)
 def _(_):
     """
-    Pressing Ctrl-L
+    Pressing Ctrl-L Show license
     """
     global LICENSE  # pylint: disable=global-statement,W0602
     LICENSE = True
@@ -507,7 +540,7 @@ def _(_):
 @kb.add("c-m", eager=True)
 def _(_):
     """
-    Pressing Enter
+    Pressing [Enter] Command entered
     """
     global SEND_COMMAND  # pylint: disable=global-statement,W0602
     SEND_COMMAND = True
@@ -527,7 +560,7 @@ def _(_):
 @kb.add("c-g", eager=True)
 def _(_):
     """
-    Pressing Ctrl-G
+    Pressing Ctrl-G for search and stop
     """
     global HIGHLIGHT_STOP  # pylint: disable=global-statement,W0602
     HIGHLIGHT_STOP = not HIGHLIGHT_STOP
@@ -538,7 +571,7 @@ def _(_):
 @kb.add("c-f", eager=True)
 def _(_):
     """
-    Pressing Ctrl-F
+    Pressing Ctrl-F for search
     """
     global HIGHLIGHT  # pylint: disable=global-statement,W0602
     HIGHLIGHT = not HIGHLIGHT
@@ -549,7 +582,7 @@ def _(_):
 @kb.add("c-i", eager=True)
 def _(_):
     """
-    Pressing Tab
+    Pressing [Tab] to switch to search input field
     """
     global TAB_PRESSED  # pylint: disable=global-statement,W0602
     TAB_PRESSED = True
