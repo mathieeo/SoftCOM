@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-    SerialApp is a free software for accessing the serial port.
+    cCOM is a free software for accessing the serial port.
 """
 import argparse
 # pylint: disable=ًW0603

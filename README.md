@@ -26,10 +26,10 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10.x-brightgreen.svg)](https://python.org)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![issues](https://img.shields.io/github/issues/mathieeo/serialapp)](https://github.com/mathieeo/SerialApp/issues)
-[![issues](https://img.shields.io/github/languages/count/mathieeo/serialapp)](https://github.com/mathieeo/SerialApp)
-[![issues](https://img.shields.io/github/languages/code-size/mathieeo/serialapp)](https://github.com/mathieeo/SerialApp)
-[![issues](https://img.shields.io/github/followers/mathieeo?style=social)](https://github.com/mathieeo/SerialApp)
+[![issues](https://img.shields.io/github/issues/mathieeo/cCOM)](https://github.com/mathieeo/cCOM/issues)
+[![issues](https://img.shields.io/github/languages/count/mathieeo/cCOM)](https://github.com/mathieeo/cCOM)
+[![issues](https://img.shields.io/github/languages/code-size/mathieeo/cCOM)](https://github.com/mathieeo/cCOM)
+[![issues](https://img.shields.io/github/followers/mathieeo?style=social)](https://github.com/mathieeo/cCOM)
 
 
 # [<img alt="" width="30x" src="images/logo.png" />](https://integratedsw.tech) Integrated Software Technologies Inc.
@@ -38,12 +38,19 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This program is designed for simplify the serial port communication.
+cCOM is a free software for accessing the serial port.
+Please reed the license agreement for more details.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+# Supported Operating-Systems
+* ###Microsoft Windows v10 64-bit
+* ###MacOS Monterey v12.2.1
+* ###Ubuntu 20.04
+* ###RedHat 8.5
 
- 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ### Built With
 
 This section should list any major frameworks/libraries used to bootstrap your project. Leave any add-ons/plugins for the acknowledgements section. Here are a few examples.
@@ -70,18 +77,18 @@ _Below is an example of how you can instruct your audience on installing and set
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/mathieeo/SerialApp.git
+   git clone https://github.com/mathieeo/cCOM.git
    ```
 2. Install virtual environment
    ```sh
    pip install virtualenv
    ```
 3. Run virtual
-   ```js
+   ```sh
    virtualenv venv && source venv/bin/activate
    ```
 4. Install requirements
-   ```js
+   ```sh
    pip install -r requirements.txt
    ```
 
@@ -92,12 +99,17 @@ _Below is an example of how you can instruct your audience on installing and set
 <!-- USAGE EXAMPLES -->
 ## Usage
 
+From the terminal (Console) cd to the project directory from there execute the following command:
+   ```sh
+   python3.10 ccom.py
+   ```
+
 ###Application arguments:
 
-|  Argument   | pram |      Description      |
-|:-----------:|:----:|:---------------------:|
-| --simulator |  -s  | Run in simulator mode |
-| --simulator |  -s  | Run in simulator mode |
+|  Argument   | pram |       Description        |
+|:-----------:|:----:|:------------------------:|
+| --simulator |  -s  |  Run in simulator mode   |
+|  --config   |  -c  | re-configure serial port |
 
 ###in-app Options:
 
@@ -128,7 +140,7 @@ _Below is an example of how you can instruct your audience on installing and set
 - [ ] Add "components" document to easily copy & paste sections of the readme
 
 
-See the [open issues](https://github.com/mathieeo/SerialApp/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/mathieeo/cCOM/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -163,8 +175,8 @@ Distributed under the GNU GPLv3 License. See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Matthew - [eMail](mailto:matt@integratedsw.tech?subject=SerialApp)
+Matthew - [eMail](mailto:matt@integratedsw.tech?subject=cCOM)
 
-Project Link: [Serial App](https://github.com/mathieeo/SerialApp)
+Project Link: [cCOM](https://github.com/mathieeo/cCOM)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
