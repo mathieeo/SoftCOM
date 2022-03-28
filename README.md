@@ -26,10 +26,10 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10.x-brightgreen.svg)](https://python.org)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![issues](https://img.shields.io/github/issues/mathieeo/cCOM)](https://github.com/mathieeo/cCOM/issues)
-[![issues](https://img.shields.io/github/languages/count/mathieeo/cCOM)](https://github.com/mathieeo/cCOM)
-[![issues](https://img.shields.io/github/languages/code-size/mathieeo/cCOM)](https://github.com/mathieeo/cCOM)
-[![issues](https://img.shields.io/github/followers/mathieeo?style=social)](https://github.com/mathieeo/cCOM)
+[![issues](https://img.shields.io/github/issues/mathieeo/ccom)](https://github.com/mathieeo/ccom/issues)
+[![issues](https://img.shields.io/github/languages/count/mathieeo/ccom)](https://github.com/mathieeo/ccom)
+[![issues](https://img.shields.io/github/languages/code-size/mathieeo/ccom)](https://github.com/mathieeo/ccom)
+[![issues](https://img.shields.io/github/followers/mathieeo?style=social)](https://github.com/mathieeo/ccom)
 
 
 # [<img alt="" width="30x" src="images/logo.png" />](https://integratedsw.tech) Integrated Software Technologies Inc.
@@ -77,7 +77,7 @@ _Below is an example of how you can instruct your audience on installing and set
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/mathieeo/cCOM.git
+   git clone https://github.com/mathieeo/ccom.git
    ```
 2. Install virtual environment
    ```sh
@@ -140,7 +140,7 @@ From the terminal (Console) cd to the project directory from there execute the f
 - [ ] Add "components" document to easily copy & paste sections of the readme
 
 
-See the [open issues](https://github.com/mathieeo/cCOM/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/mathieeo/ccom/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -177,6 +177,6 @@ Distributed under the GNU GPLv3 License. See `LICENSE` for more information.
 
 Matthew - [eMail](mailto:matt@integratedsw.tech?subject=cCOM)
 
-Project Link: [cCOM](https://github.com/mathieeo/cCOM)
+Project Link: [cCOM](https://github.com/mathieeo/ccom)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
