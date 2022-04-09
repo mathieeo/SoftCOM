@@ -104,14 +104,14 @@ From the terminal (Console) cd to the project directory from there execute the f
    python3.10 softcom.py
    ```
 
-###Application arguments:
+**Application arguments:**
 
 |  Argument   | pram |       Description        |
 |:-----------:|:----:|:------------------------:|
 | --simulator |  -s  |  Run in simulator mode   |
 |  --config   |  -c  | re-configure serial port |
 
-###in-app Options:
+**in-app Options:**
 
 |       Option       |    Key    |                       Description                        |
 |:------------------:|:---------:|:--------------------------------------------------------:|
