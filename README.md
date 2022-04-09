@@ -34,7 +34,7 @@
 
 # [<img alt="" width="30x" src="https://static.wixstatic.com/media/b3d4ff_6d86c4d4b77245d8894a815b759ed7fd~mv2.png/v1/fill/w_132,h_119,al_c,usm_0.66_1.00_0.01,enc_auto/logo.png" />](https://integratedsw.tech) Integrated Software Technologies Inc.
 
-[<img alt="alt_text" width="700x" src="https://static.wixstatic.com/media/b3d4ff_18938d64e26b4d1fa02a9c6c7e03501df000.jpg" />](https://video.wixstatic.com/video/b3d4ff_18938d64e26b4d1fa02a9c6c7e03501d/480p/mp4/file.mp4)
+[<img alt="alt_text" width="700x" src="https://static.wixstatic.com/media/b3d4ff_c4baf39b3cb1454b8fae56fc671e39b1~mv2.gif" />](https://video.wixstatic.com/video/b3d4ff_18938d64e26b4d1fa02a9c6c7e03501d/480p/mp4/file.mp4)
 
 
 <!-- ABOUT THE PROJECT -->
