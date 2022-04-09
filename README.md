@@ -44,10 +44,10 @@ Please reed the license agreement for more details.
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 # Supported Operating-Systems
-* ###Microsoft Windows v10 64-bit
-* ###MacOS Monterey v12.2.1
-* ###Ubuntu 20.04
-* ###RedHat 8.5
+* **Microsoft Windows v10 64-bit**
+* **MacOS Monterey v12.2.1**
+* **Ubuntu 20.04**
+* **RedHat 8.5**
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
