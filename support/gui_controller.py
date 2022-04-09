@@ -96,7 +96,7 @@ def get_options_text():
         ("class:title fg:cyan", " [Control+G] - Find and Stop \n"),
         ("class:title fg:green", " [Control+L] - Show License \n"),
         ("class:title fg:green", " [Control+H] - Help \n"),
-        ("class:title fg:darkblue", " [Shift+Tab] - Debug \n"),
+        ("class:title bg:darkblue fg:white", " [Shift+Tab] - Debug \n"),
     ]
 
 
