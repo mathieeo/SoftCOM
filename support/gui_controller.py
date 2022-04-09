@@ -658,7 +658,7 @@ def _(_):
 @kb.add("c-h", eager=True)
 def _(_):
     """
-    Pressing+P to pause the incoming output log
+    Backspace is pressed when user is deleting last char
     """
     global BACKSPACK_PRESSED  # pylint: disable=global-statement,W0602
     BACKSPACK_PRESSED = not BACKSPACK_PRESSED
