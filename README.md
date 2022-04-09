@@ -32,9 +32,9 @@
 [![issues](https://img.shields.io/github/followers/mathieeo?style=social)](https://github.com/mathieeo/microcom)
 
 
-# [<img alt="" width="30x" src="images/logo.png" />](https://integratedsw.tech) Integrated Software Technologies Inc.
+# [<img alt="" width="30x" src="https://static.wixstatic.com/media/b3d4ff_6d86c4d4b77245d8894a815b759ed7fd~mv2.png/v1/fill/w_132,h_119,al_c,usm_0.66_1.00_0.01,enc_auto/logo.png" />](https://integratedsw.tech) Integrated Software Technologies Inc.
 
-[<img alt="alt_text" width="300x" src="images/animated_logo.gif" />](https://integratedsw.tech)
+[<img alt="alt_text" width="300x" src="https://static.wixstatic.com/media/b3d4ff_fd5635e886fa4ff1ab24e822f2fc4bbc~mv2.gif" />](https://integratedsw.tech)
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
