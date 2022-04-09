@@ -26,10 +26,10 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10.x-brightgreen.svg)](https://python.org)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![issues](https://img.shields.io/github/issues/mathieeo/microcom)](https://github.com/mathieeo/microcom/issues)
-[![issues](https://img.shields.io/github/languages/count/mathieeo/microcom)](https://github.com/mathieeo/microcom)
-[![issues](https://img.shields.io/github/languages/code-size/mathieeo/microcom)](https://github.com/mathieeo/microcom)
-[![issues](https://img.shields.io/github/followers/mathieeo?style=social)](https://github.com/mathieeo/microcom)
+[![issues](https://img.shields.io/github/issues/mathieeo/softcom)](https://github.com/mathieeo/softcom/issues)
+[![issues](https://img.shields.io/github/languages/count/mathieeo/softcom)](https://github.com/mathieeo/softcom)
+[![issues](https://img.shields.io/github/languages/code-size/mathieeo/softcom)](https://github.com/mathieeo/softcom)
+[![issues](https://img.shields.io/github/followers/mathieeo?style=social)](https://github.com/mathieeo/softcom)
 
 
 # [<img alt="" width="30x" src="https://static.wixstatic.com/media/b3d4ff_6d86c4d4b77245d8894a815b759ed7fd~mv2.png/v1/fill/w_132,h_119,al_c,usm_0.66_1.00_0.01,enc_auto/logo.png" />](https://integratedsw.tech) Integrated Software Technologies Inc.
@@ -38,7 +38,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-MicroCOM is a free software for accessing the serial port.
+SoftCOM is a free software for accessing the serial port.
 Please reed the license agreement for more details.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -77,7 +77,7 @@ _Below is an example of how you can instruct your audience on installing and set
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/mathieeo/microcom.git
+   git clone https://github.com/mathieeo/softcom.git
    ```
 2. Install virtual environment
    ```sh
@@ -101,7 +101,7 @@ _Below is an example of how you can instruct your audience on installing and set
 
 From the terminal (Console) cd to the project directory from there execute the following command:
    ```sh
-   python3.10 microcom.py
+   python3.10 softcom.py
    ```
 
 ###Application arguments:
@@ -140,7 +140,7 @@ From the terminal (Console) cd to the project directory from there execute the f
 - [ ] Add "components" document to easily copy & paste sections of the readme
 
 
-See the [open issues](https://github.com/mathieeo/microcom/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/mathieeo/softcom/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -175,8 +175,8 @@ Distributed under the GNU GPLv3 License. See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Matthew - [eMail](mailto:matt@integratedsw.tech?subject=MicroCOM)
+Matthew - [eMail](mailto:matt@integratedsw.tech?subject=SoftCOM)
 
-Project Link: [MicroCOM](https://github.com/mathieeo/microcom)
+Project Link: [SoftCOM](https://github.com/mathieeo/softcom)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
