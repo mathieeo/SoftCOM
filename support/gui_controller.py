@@ -67,6 +67,8 @@ TAB_PRESSED = False
 SHOW_HELP = False
 # PAUSE_LOGGING is used to pause the incoming output log useful for ignoring unwanted logs
 PAUSE_LOGGING = False
+# BACKSPACK_PRESSED is used to deleting the last character from the command or the serach string
+BACKSPACK_PRESSED = False
 
 
 def get_titlebar_text(custom_msg):
@@ -377,6 +379,7 @@ class GuiController:
         global SEND_COMMAND
         global TAB_PRESSED
         global SHOW_HELP
+        global BACKSPACK_PRESSED
 
         while UPDATE_LOG_FLAG:
             # first iteration? check if the device is still connected.
@@ -418,6 +421,15 @@ class GuiController:
                     # close file
                     file.close()
                     self.right_buffer.text += ('\n\n' + str(data) + '\n\n')
+            # if the user wanted to remove last char
+            if BACKSPACK_PRESSED:
+                if self.application.layout.current_control == self.right_window.content:
+                    self.inserted_command = self.inserted_command[:-1]
+                else:
+                    self.search_buffer = self.search_buffer[:-1]
+                    self.search_input = self.search_input[:-1]
+                    
+                BACKSPACK_PRESSED = not BACKSPACK_PRESSED
 
             # if the user pressed on TAB (auto-complete?)
             if TAB_PRESSED:
@@ -633,3 +645,12 @@ def _(_):
     global UPDATE_LOG_FLAG  # pylint: disable=global-statement,W0602
     PAUSE_LOGGING = not PAUSE_LOGGING
     UPDATE_LOG_FLAG = not PAUSE_LOGGING
+
+
+@kb.add("c-h", eager=True)
+def _(_):
+    """
+    Pressing+P to pause the incoming output log
+    """
+    global BACKSPACK_PRESSED  # pylint: disable=global-statement,W0602
+    BACKSPACK_PRESSED = not BACKSPACK_PRESSED
