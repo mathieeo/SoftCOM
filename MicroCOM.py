@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-    cCOM is a free software for accessing the serial port.
+    MicroCOM is a free software for accessing the serial port.
 """
 import argparse
 # pylint: disable=ًW0603

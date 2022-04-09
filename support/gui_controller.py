@@ -221,7 +221,7 @@ class GuiController:
 
                             self.status_window,
                             Window(height=1, content=FormattedTextControl([("class:line bg:darkblue",
-                                                                            f'  cCOM v{__version__}  ')]),
+                                                                            f'  MicroCOM v{__version__}  ')]),
                                    style="class:title",
                                    align=WindowAlign.RIGHT),
                         ]
