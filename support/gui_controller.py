@@ -107,7 +107,7 @@ kb = KeyBindings()
 
 
 class GuiController:
-    # pylint: disable=global-statement,global-variable-not-assigned,R0902
+    # pylint: disable=global-statement,global-variable-not-assigned,R0902,R0912
     """
         GuiController is the class responsible for managing the CLI-GUI components and the serial device interface.
     """
@@ -257,7 +257,7 @@ class GuiController:
             layout=Layout(self.root_container, focused_element=self.right_window),
             key_bindings=kb,
             # Let's add mouse support!
-            mouse_support=False,
+            mouse_support=True,
             # Using an alternate screen buffer means as much as: "run full screen".
             # It switches the terminal to an alternate screen.
             full_screen=True,
@@ -426,9 +426,9 @@ class GuiController:
                 if self.application.layout.current_control == self.right_window.content:
                     self.inserted_command = self.inserted_command[:-1]
                 else:
-                    self.search_buffer = self.search_buffer[:-1]
+                    self.search_buffer.text = self.search_buffer.text[:-1]
                     self.search_input = self.search_input[:-1]
-                    
+                    HIGHLIGHT_STRING = HIGHLIGHT_STRING[:-1]
                 BACKSPACK_PRESSED = not BACKSPACK_PRESSED
 
             # if the user pressed on TAB (auto-complete?)
@@ -602,7 +602,11 @@ def _(_):
     Pressing Ctrl-G for search and stop
     """
     global HIGHLIGHT_STOP  # pylint: disable=global-statement,W0602
-    HIGHLIGHT_STOP = not HIGHLIGHT_STOP
+    global HIGHLIGHT_STRING  # pylint: disable=global-statement,W0602
+    if HIGHLIGHT_STRING == '':
+        HIGHLIGHT_STOP = not HIGHLIGHT_STOP
+    else:
+        HIGHLIGHT_STOP = True
     get_app().layout.focus_next()
     get_app().layout.focus_next()
 
@@ -613,7 +617,11 @@ def _(_):
     Pressing Ctrl-F for search
     """
     global HIGHLIGHT  # pylint: disable=global-statement,W0602
-    HIGHLIGHT = not HIGHLIGHT
+    global HIGHLIGHT_STRING  # pylint: disable=global-statement,W0602
+    if HIGHLIGHT_STRING == '':
+        HIGHLIGHT = not HIGHLIGHT
+    else:
+        HIGHLIGHT = True
     get_app().layout.focus_next()
     get_app().layout.focus_next()
 
