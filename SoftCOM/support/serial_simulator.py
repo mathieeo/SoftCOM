@@ -5,7 +5,8 @@
 """
 import random
 
-lines = open('test_log.txt', encoding='UTF-8').read().splitlines()  # pylint: disable=R1732
+lines = open('/Users/mathyossarkiss/Personal/SoftCOM/SoftCOM/support/test_log.txt',
+             encoding='UTF-8').read().splitlines()  # pylint: disable=R1732
 
 
 def get_random_string():
@@ -15,6 +16,7 @@ def get_random_string():
     """
     line = random.choice(lines)
     return str(line)
+
 
 def random_text_generator():
     """

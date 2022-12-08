@@ -8,18 +8,24 @@ import os
 import sys
 from os.path import exists
 
-from support.gui_controller import GuiController
-from support.input_dialog import InputDialog
-from support.message_dialog import MessageDialog
-from support.radiolist_dialog import RadioListDialog
-from support.save_settings import SaveSettings
+try:
+    from SoftCOM import (GuiController, InputDialog, MessageDialog,
+                         RadioListDialog, SaveSettings)
+except ImportError:
+    from gui_controller import GuiController
+    from support import (InputDialog, MessageDialog, RadioListDialog,
+                         SaveSettings)
 
 # get the project path
 __location__ = os.path.dirname(os.path.realpath(__file__))
 # generate the settings file path
 __SettingsFilePath___ = os.path.join(__location__, 'settings.json')
 
-if __name__ == "__main__":
+
+def main():
+    """
+     main entery
+    """
     # using argparse for managing the parameters passed to the app
     parser = argparse.ArgumentParser()
     # developer mode not used as of the moment
@@ -75,3 +81,7 @@ if __name__ == "__main__":
     GuiController(DEVICE_PATH, BAUDRATE, parsed.simulator)
     # save the settings file
     settings.save_file()
+
+
+if __name__ == "__main__":
+    main()

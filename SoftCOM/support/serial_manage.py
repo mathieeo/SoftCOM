@@ -4,7 +4,7 @@
 """
 import serial
 
-from support.exceptions import SerialDeviceOpenError  # pylint: disable=E0401
+from .exceptions import SerialDeviceOpenError  # pylint: disable=E0401
 
 
 class SerialManager:

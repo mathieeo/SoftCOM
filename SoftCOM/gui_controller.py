@@ -20,14 +20,13 @@ from prompt_toolkit.lexers import PygmentsLexer
 from pygments.lexers.automation import AutoItLexer
 from pygments.lexers.templates import Angular2Lexer
 from pygments.lexers.textedit import VimLexer
-
 from support.exceptions import SerialDeviceOpenError  # pylint: disable=E0401
 from support.message_dialog import MessageDialog  # pylint: disable=E0401
 from support.progress_bar import CustomProgressBar  # pylint: disable=E0401
 from support.serial_manage import SerialManager  # pylint: disable=E0401
 from support.serial_simulator import \
     random_text_generator  # pylint: disable=E0401
-from support.version import __version__  # pylint: disable=E0401
+from version import __version__
 
 # Global parameters mainly used for state-machine cases where the software needs to interrupt the working thread.
 
