@@ -1,12 +1,11 @@
 name: Build and release SoftCOM
 
-# on:
-#   push:
-#     tags:
-#       - '*'
-#     branches:
-#       - main
-on: [push]
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - main
       
 jobs:
   build:
@@ -24,12 +23,13 @@ jobs:
       - name: Build project
         run: |
           python -m build
-      - uses: actions/checkout@v2
-      - name: Upload wheel to release
-        uses: actions/upload-release-asset@v1
+       # tag Release
+      - name: uploadRelease
+        if: startsWith(github.event.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@v2
         with:
-          release_id: ${{ github.event.release.id }}
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: dist/*.whl
-          asset_name: ${{ github.event.release.name }}.whl
-          asset_content_type: application/python-wheels
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.whl
+          asset_name: SoftCOM_python.whl
+          tag: ${{ github.ref }}
+          overwrite: true
