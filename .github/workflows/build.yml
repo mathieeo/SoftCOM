@@ -1,7 +1,13 @@
-name: Build SoftCOM
+name: Build and release SoftCOM
 
+# on:
+#   push:
+#     tags:
+#       - '*'
+#     branches:
+#       - main
 on: [push]
-
+      
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,6 +24,11 @@ jobs:
       - name: Build project
         run: |
           python -m build
-      - name: Upload wheel
-        run: |
-          twine upload dist/*
+           - uses: actions/checkout@v2
+      - name: Upload wheel to release
+        uses: actions/upload-release-asset@v1
+        with:
+          release_id: ${{ github.event.release.id }}
+          asset_path: dist/*.whl
+          asset_name: ${{ github.event.release.name }}.whl
+          asset_content_type: application/python-wheels
