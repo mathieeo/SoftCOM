@@ -24,7 +24,7 @@ jobs:
       - name: Build project
         run: |
           python -m build
-           - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
       - name: Upload wheel to release
         uses: actions/upload-release-asset@v1
         with:
