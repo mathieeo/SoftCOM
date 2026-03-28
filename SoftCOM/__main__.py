@@ -1,4 +1,6 @@
 """
- main
+ Entry point for `python -m SoftCOM`
 """
-print("HI")
+from .softcom import main
+
+main()

@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """
-    GUI Controller mainly used to manage the CLI GUI components and handling the serial device I/O interface.
+    GUI Controller — manages the CLI GUI components and the serial device I/O interface.
 """
+import os
 import sys
 import time
 from os.path import exists
 from threading import Thread
+
+# History file stored in the user's home directory
+_HISTORY_FILE = os.path.join(os.path.expanduser("~"), ".softcom_history")
+_MAX_HISTORY = 500  # max lines kept in the history file
 
 import pyperclip
 from prompt_toolkit.application import Application, get_app
@@ -28,53 +33,49 @@ from support.serial_simulator import \
     random_text_generator  # pylint: disable=E0401
 from version import __version__
 
-# Global parameters mainly used for state-machine cases where the software needs to interrupt the working thread.
-
-# UPDATE_LOG_FLAG used to determine whether the software is fetching the incoming packets
+# ── Global state flags ────────────────────────────────────────────────────────
+# UPDATE_LOG_FLAG: controls the periodic_update loop
 UPDATE_LOG_FLAG = False
-# CLEAR_LOG is used to determine the software that a clear flag was set to clear the output log buffer.
+# CLEAR_LOG: signals the loop to wipe the output buffer
 CLEAR_LOG = False
-# OUTPUT_LOG is used for exporting the output log message to a file globally.
+# OUTPUT_LOG: current full text of the output log (for export)
 OUTPUT_LOG = ""
-# LOG_FILE_COUNTER is mainly used for counting the number of times the software exported a file also it used
-# as a prefix for the exported file name.
+# LOG_FILE_COUNTER: increments each time the log is exported to file
 LOG_FILE_COUNTER = 0
-# HIGHLIGHT is mainly used when user is searching for a string.
+# HIGHLIGHT / HIGHLIGHT_STOP / HIGHLIGHT_STRING: search feature
 HIGHLIGHT = False
-# HIGHLIGHT_STOP similar to the HIGHLIGHT this variable used for the search and stop feature.
 HIGHLIGHT_STOP = False
-# HIGHLIGHT_STRING is used for the input search string that was entered by the user.
 HIGHLIGHT_STRING = ""
-# CAPTURE is used to capture a certain part of the log and the time for logging is started and stopped by the user
+# CAPTURE / CAPTURE_LOG: log-capture feature
 CAPTURE = False
-# CAPTURE_LOG is the log string that holds the log buffer. it will be exported to a file.
 CAPTURE_LOG = ""
-# CAPTURE_MSG_FLAG is used for print and messaging purposes
 CAPTURE_MSG_FLAG = False
-# CAPTURE_LOG_FILE_COUNTER similar to the LOG_FILE_COUNTER but used for the capture feature.
 CAPTURE_LOG_FILE_COUNTER = 0
-# LICENSE is a flag that determines the user requesting the license
+# LICENSE: user requested the license view
 LICENSE = False
-# SEND_COMMAND is used for signaling the software that user entered a command to serial device.
+# SEND_COMMAND: user pressed Enter — command ready to send
 SEND_COMMAND = False
-# DEBUG_MODE is used for debuting purposes
+# DEBUG_MODE: Shift+Tab debug overlay
 DEBUG_MODE = False
 DEBUG_MODE_TEXT = False
-# TAB_PRESSED is used to switch the fours from output log to the search editbox
+# TAB_PRESSED: send a TAB to the device (autocomplete attempt)
 TAB_PRESSED = False
-# SHOW_HELP is used to show the help string
+# SHOW_HELP: user requested the help text
 SHOW_HELP = False
-# PAUSE_LOGGING is used to pause the incoming output log useful for ignoring unwanted logs
+# PAUSE_LOGGING: freeze the incoming output log
 PAUSE_LOGGING = False
-# BACKSPACK_PRESSED is used to deleting the last character from the command or the serach string
-BACKSPACK_PRESSED = False
+# BACKSPACE_PRESSED: user pressed Backspace — remove last char from inserted_command
+BACKSPACE_PRESSED = False
+# HISTORY_UP / HISTORY_DOWN: navigate command history with arrow keys
+HISTORY_UP = False
+HISTORY_DOWN = False
+# CLEAR_SEARCH: Ctrl+R wipes the search field and disables search modes
+CLEAR_SEARCH = False
 
 
 def get_titlebar_text(custom_msg):
     """
-        This global function is used to get the header message for the CLI-GUI
-    :param custom_msg: if mainly used to pass the device name is baud-rate.
-    :return: the formatted string
+    Returns the formatted header text for the CLI-GUI.
     """
     return [
         ("class:title bg:darkgreen", " [" + custom_msg + "] "),
@@ -83,20 +84,21 @@ def get_titlebar_text(custom_msg):
 
 def get_options_text():
     """
-        This global function is used to get the list of options string for the CLI-GUI
-    :return: the formatted string
+    Returns the formatted options/key-bindings panel text.
     """
     return [
-        ("class:title fg:red", " [Control+Q] - Quit \n"),
+        ("class:title fg:red",    " [Control+Q] - Quit \n"),
         ("class:title fg:yellow", " [Control+X] - Clear Log \n"),
-        ("class:title fg:yellow", " [Control+P] - Pause Logging \n"),
+        ("class:title fg:yellow", " [Control+P] - Pause/Resume Logging \n"),
         ("class:title fg:yellow", " [Control+S] - Export to file \n"),
-        ("class:title fg:yellow", " [Control+W] - Start/Stop capture \n"),
-        ("class:title fg:yellow", " [Control+C] - Copy All in clipboard \n"),
-        ("class:title fg:cyan", " [Control+F] - Highlight Pattern \n"),
-        ("class:title fg:cyan", " [Control+G] - Find and Stop \n"),
-        ("class:title fg:green", " [Control+L] - Show License \n"),
-        ("class:title fg:green", " [Control+H] - Help \n"),
+        ("class:title fg:yellow", " [Control+W] - Start/Stop Capture \n"),
+        ("class:title fg:yellow", " [Control+C] - Copy All to Clipboard \n"),
+        ("class:title fg:cyan",   " [Control+F] - Highlight Pattern \n"),
+        ("class:title fg:cyan",   " [Control+G] - Find and Stop \n"),
+        ("class:title fg:cyan",   " [Control+R] - Clear Search \n"),
+        ("class:title fg:green",  " [Control+L] - Show License \n"),
+        ("class:title fg:green",  " [Control+H] - Help \n"),
+        ("class:title fg:green",  " [↑ / ↓]     - Command History \n"),
         ("class:title bg:darkblue fg:white", " [Shift+Tab] - Debug \n"),
     ]
 
@@ -108,265 +110,247 @@ kb = KeyBindings()
 class GuiController:
     # pylint: disable=global-statement,global-variable-not-assigned,R0902,R0912
     """
-        GuiController is the class responsible for managing the CLI-GUI components and the serial device interface.
+        GuiController manages the CLI-GUI components and the serial device interface.
     """
 
-    def __init__(self, serial_device_path, serial_device_baudrate, simulator_mode: bool):
+    def __init__(self, serial_device_path, serial_device_baudrate, simulator_mode: bool,
+                 parity='N', stopbits=1):
         """
-            initial method responsible for starting and configuring the default values and
-            the necessary configurations
+        Configure default values, build the layout, and start the read thread.
         """
         global UPDATE_LOG_FLAG
         global HIGHLIGHT
         global HIGHLIGHT_STOP
 
-        # simulator mode holds the simulator mode state
         self.simulator_mode = simulator_mode
-        # hold the device path
         self.serial_dev_path = serial_device_path
-        # some variables must be set to default
         self.inserted_command: str = ""
         self.search_input: str = ""
+        self.command_history: list = self._load_history()
+        self.history_index: int = -1
+        self.session_cwd: str = os.getcwd()  # capture CWD at launch for log file output
 
-        # if not simulator mode try to open the serial device if failed raise a flag
         if not simulator_mode:
-            # Serial device
-            self.ser_dev = SerialManager(serial_device_path, serial_device_baudrate)
+            self.ser_dev = SerialManager(serial_device_path, serial_device_baudrate,
+                                         parity=parity, stopbits=stopbits)
             try:
                 self.ser_dev.open_dev()
             except SerialDeviceOpenError:
                 MessageDialog("Failed", f"Failed to open the {serial_device_path} device.")
                 sys.exit(1)
 
-        #  Create the buffers
+        # ── Buffers ───────────────────────────────────────────────────────────
         self.left_buffer = Buffer()
         self.right_buffer = Buffer()
         self.status_buffer = Buffer()
         self.search_buffer = Buffer()
-        # Create the windows for the buffers
+
+        # ── Windows ───────────────────────────────────────────────────────────
         self.left_window = Window(BufferControl(buffer=self.left_buffer,
                                                 lexer=PygmentsLexer(VimLexer)), width=10)
         self.status_window = Window(BufferControl(buffer=self.status_buffer,
                                                   lexer=PygmentsLexer(Angular2Lexer)), height=1)
-        self.right_window = Window(BufferControl(buffer=self.right_buffer, lexer=PygmentsLexer(AutoItLexer),
-                                                 focus_on_click=True), wrap_lines=True, style='class:border')
+        self.right_window = Window(BufferControl(buffer=self.right_buffer,
+                                                 lexer=PygmentsLexer(AutoItLexer),
+                                                 focus_on_click=True),
+                                   wrap_lines=True, style='class:border')
         self.search_window = Window(BufferControl(buffer=self.search_buffer,
-                                                  lexer=PygmentsLexer(Angular2Lexer)), height=1, style='class:border')
-        # Define the layout for the GUI
+                                                  lexer=PygmentsLexer(Angular2Lexer)),
+                                    height=1, style='class:border')
+
+        # ── Layout ────────────────────────────────────────────────────────────
         self.body = \
-            HSplit(
-                [
-                    VSplit(
-                        [
-                            HSplit(
-                                [
-                                    Window(height=1, content=FormattedTextControl([("class:line", "Input Options")]),
-                                           style="class:title",
-                                           align=WindowAlign.CENTER),
-                                    # Horizontal separator.
-                                    Window(height=1, char="-", style="class:line"),
-                                    # The titlebar.
-                                    Window(height=len(get_options_text()),
-                                           content=FormattedTextControl(get_options_text()),
-                                           align=WindowAlign.LEFT),
-                                    # Horizontal separator.
-                                    Window(height=1, char="-", style="class:line"),
-                                    Window(height=1, content=FormattedTextControl([("class:line fg:yellow",
-                                                                                    "Search feild")]),
-                                           style="class:title",
-                                           align=WindowAlign.CENTER),
-                                    Window(height=1, char="-", style="class:line"),
-                                    VSplit([
-                                        Window(width=2, char="||", style="class:line"),
-                                        self.search_window,
-                                        Window(width=2, char="||", style="class:line"), ]),
-                                    Window(height=1, char="-", style="class:line"),
-                                    Window(height=1, content=FormattedTextControl([("class:line bg:black fg:green",
-                                                                                    "Commands History")]),
-                                           style="class:title",
-                                           align=WindowAlign.CENTER),
-                                    Window(height=1, char="-", style="class:line"),
-                                    self.left_window,
-                                    Window(height=1, char="-", style="class:line"),
-                                    Window(height=1, content=FormattedTextControl(
-                                        [("class:title bg:darkred", " Integrated Software Technologies Inc. ")]),
-                                           style="class:title",
-                                           align=WindowAlign.CENTER),
-                                    Window(height=1, content=FormattedTextControl(
-                                        [("class:title bg:darkred", " http://integratedsw.tech ")]),
-                                           style="class:title",
-                                           align=WindowAlign.CENTER),
-                                ]),
-                            # A vertical line in the middle. We explicitly specify the width, to make
-                            # sure that the layout engine will not try to divide the whole width by
-                            # three for all these windows.
-                            Window(width=1, char="|", style="class:line"),
-                            # Display the Result buffer on the right.
-                            HSplit(
-                                [
-                                    Window(height=1, content=FormattedTextControl([("class:line", "Output Log")]),
-                                           style="class:title",
-                                           align=WindowAlign.CENTER),
-                                    Window(height=1, char="-", style="class:line"),
-                                    self.right_window,
-                                ]),
-                        ]
-                    ),
-                    Window(height=1, char="-", style="class:line"),
-                    Window(height=1, content=FormattedTextControl([("class:line", "Status")]),
-                           style="class:title",
-                           align=WindowAlign.CENTER),
-                    Window(height=1, char="-", style="class:line"),
-                    VSplit(
-                        [
-
-                            self.status_window,
-                            Window(height=1, content=FormattedTextControl([("class:line bg:darkblue",
-                                                                            f'  SoftCOM v{__version__}  ')]),
-                                   style="class:title",
-                                   align=WindowAlign.RIGHT),
-                        ]
-                    ),
-                ])
-
-        self.root_container = HSplit(
-            [
-                # The titlebar.
-                Window(
-                    height=1,
-                    content=FormattedTextControl(get_titlebar_text(f"{serial_device_path} {serial_device_baudrate}")),
-                    align=WindowAlign.CENTER,
-                ),
-                # Horizontal separator.
+            HSplit([
+                VSplit([
+                    HSplit([
+                        Window(height=1,
+                               content=FormattedTextControl([("class:line", "Input Options")]),
+                               style="class:title", align=WindowAlign.CENTER),
+                        Window(height=1, char="-", style="class:line"),
+                        Window(height=len(get_options_text()),
+                               content=FormattedTextControl(get_options_text()),
+                               align=WindowAlign.LEFT),
+                        Window(height=1, char="-", style="class:line"),
+                        Window(height=1,
+                               content=FormattedTextControl([("class:line fg:yellow", "Search field")]),
+                               style="class:title", align=WindowAlign.CENTER),
+                        Window(height=1, char="-", style="class:line"),
+                        VSplit([
+                            Window(width=2, char="||", style="class:line"),
+                            self.search_window,
+                            Window(width=2, char="||", style="class:line"),
+                        ]),
+                        Window(height=1, char="-", style="class:line"),
+                        Window(height=1,
+                               content=FormattedTextControl([("class:line bg:black fg:green",
+                                                              "Commands History")]),
+                               style="class:title", align=WindowAlign.CENTER),
+                        Window(height=1, char="-", style="class:line"),
+                        self.left_window,
+                        Window(height=1, char="-", style="class:line"),
+                        Window(height=1,
+                               content=FormattedTextControl(
+                                   [("class:title bg:darkred", " Integrated Software Technologies Inc. ")]),
+                               style="class:title", align=WindowAlign.CENTER),
+                        Window(height=1,
+                               content=FormattedTextControl(
+                                   [("class:title bg:darkred", " http://integratedsw.tech ")]),
+                               style="class:title", align=WindowAlign.CENTER),
+                    ]),
+                    Window(width=1, char="|", style="class:line"),
+                    HSplit([
+                        Window(height=1,
+                               content=FormattedTextControl([("class:line", "Output Log")]),
+                               style="class:title", align=WindowAlign.CENTER),
+                        Window(height=1, char="-", style="class:line"),
+                        self.right_window,
+                    ]),
+                ]),
                 Window(height=1, char="-", style="class:line"),
-                # The 'body', like defined above.
-                self.body,
-            ]
-        )
+                Window(height=1,
+                       content=FormattedTextControl([("class:line", "Status")]),
+                       style="class:title", align=WindowAlign.CENTER),
+                Window(height=1, char="-", style="class:line"),
+                VSplit([
+                    self.status_window,
+                    Window(height=1,
+                           content=FormattedTextControl([("class:line bg:darkblue",
+                                                          f'  SoftCOM v{__version__}  ')]),
+                           style="class:title", align=WindowAlign.RIGHT),
+                ]),
+            ])
+
+        self.root_container = HSplit([
+            Window(
+                height=1,
+                content=FormattedTextControl(
+                    get_titlebar_text(f"{serial_device_path} {serial_device_baudrate}")),
+                align=WindowAlign.CENTER,
+            ),
+            Window(height=1, char="-", style="class:line"),
+            self.body,
+        ])
 
         self.connection_info = f"device {serial_device_path} opened successfully. {serial_device_baudrate}"
-        # set the needed events
+
         self.right_buffer.on_text_changed += self.update_log_cursor
         self.right_buffer.on_text_insert += self.typing_command
         self.search_buffer.on_text_insert += self.typing_search
 
-        # Creating an `Application` instance
-        # This glues everything together.
         self.application = Application(
             layout=Layout(self.root_container, focused_element=self.right_window),
             key_bindings=kb,
-            # Let's add mouse support!
             mouse_support=True,
-            # Using an alternate screen buffer means as much as: "run full screen".
-            # It switches the terminal to an alternate screen.
             full_screen=True,
             cursor=CursorShape.BLINKING_UNDERLINE,
-            enable_page_navigation_bindings=True
+            enable_page_navigation_bindings=True,
         )
-        # Config read thread
-        self.read_thread = Thread(target=self.periodic_update)
-        #  Init globals
-        UPDATE_LOG_FLAG = True
 
-        # start the read thread
+        self.read_thread = Thread(target=self.periodic_update, daemon=True)
+        UPDATE_LOG_FLAG = True
         self.read_thread.start()
-        # Run the interface. (This runs the event loop until Ctrl-Q is pressed.)
         self.application.run()
 
     def __del__(self):
         """
-            Del for destroying the object
+        Cleanup on destruction.
         """
-        if not self.simulator_mode:
+        if not self.simulator_mode and hasattr(self, 'ser_dev'):
             self.ser_dev.close_dev()
+
+    @staticmethod
+    def _load_history() -> list:
+        """
+        Load command history from ~/.softcom_history.
+        Returns an empty list if the file does not exist or cannot be read.
+        """
+        try:
+            if os.path.isfile(_HISTORY_FILE):
+                with open(_HISTORY_FILE, encoding='utf-8') as f:
+                    lines = [l.rstrip('\n') for l in f.readlines() if l.strip()]
+                return lines[-_MAX_HISTORY:]
+        except OSError:
+            pass
+        return []
+
+    def _save_history(self):
+        """
+        Persist the current command history to ~/.softcom_history (capped at _MAX_HISTORY).
+        """
+        try:
+            entries = self.command_history[-_MAX_HISTORY:]
+            with open(_HISTORY_FILE, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(entries) + '\n')
+        except OSError:
+            pass
 
     def get_status_text(self):
         """
-            get_status_text is used to define the status bar string.
+        Build the status bar string.
         """
-        global HIGHLIGHT
-        global HIGHLIGHT_STRING
-        global HIGHLIGHT_STOP
-        global DEBUG_MODE_TEXT
-
         if self.simulator_mode:
-            return_var = "| Device:OPEN |"
+            return_var = "| Device:OPEN(SIM) |"
         else:
-            if self.ser_dev.is_dev_open():
-                return_var = "| Device:OPEN |"
-            else:
-                return_var = "| Device:CLOSE |"
+            return_var = "| Device:OPEN |" if self.ser_dev.is_dev_open() else "| Device:CLOSE |"
 
         if HIGHLIGHT:
             return_var += f" Search:ON:[{HIGHLIGHT_STRING}] |"
-
         if HIGHLIGHT_STOP:
             return_var += f" Search_Stop:ON:[{HIGHLIGHT_STRING}] |"
-
         if CAPTURE:
             return_var += " Capture:ON |"
-
+        if PAUSE_LOGGING:
+            return_var += " Paused |"
         if DEBUG_MODE:
-            return_var += F" DEBUG_MODE:ON:[{DEBUG_MODE_TEXT}|"
-
+            return_var += f" DEBUG_MODE:ON:[{DEBUG_MODE_TEXT}] |"
         return return_var
 
     def typing_search(self, _):
         """
-            typing_search this event is called when the user is typing in the search field
+        Called when the user types in the search field.
         """
         global HIGHLIGHT_STRING
         self.search_input = HIGHLIGHT_STRING = self.search_buffer.text
 
     def typing_command(self, event):
         """
-            typing_command this event is called when the user is typing in the output log field
+        Called when the user types in the output log field.
         """
         global DEBUG_MODE
         global DEBUG_MODE_TEXT
-        # event holds the buffer and we want only thr last character
-        # todo backspace support?
         self.inserted_command += event.text[-1]
         if DEBUG_MODE:
             DEBUG_MODE_TEXT += event.text[-1]
 
     def update_log_cursor(self, _):  # pylint: disable=R0201
         """
-            update_log_curser this event is used to update the cursor when a change occur to the output log field
+        Keep the cursor at the end of the output log after each update.
         """
         self.update_cursor()
 
     def update_cursor(self):
         """
-        update_cursor this method used to check and update the cursor.
+        Move the cursor to the end of the last line in the output log.
         """
-        self.right_buffer.auto_down()
-        char_count = len(self.right_buffer.text.splitlines()[-1])
-        self.right_buffer.cursor_right(char_count)
+        lines = self.right_buffer.text.splitlines()
+        if lines:
+            self.right_buffer.auto_down()
+            self.right_buffer.cursor_right(len(lines[-1]))
 
     def send_command(self, command):
         """
-        send_command is used to send the input command from output log field and perform serial write operation
+        Write a command to the serial device and record it in the history panel.
         """
-        global HIGHLIGHT
-        global HIGHLIGHT_STRING
-        global HIGHLIGHT_STOP
-        global UPDATE_LOG_FLAG
-
         if command == "\n":
             return
-
         if not self.simulator_mode:
             self.ser_dev.exe_command(command)
-
-        # save the command to the history list
-        # todo maybe we need a key to browse through the history of commands
         self.left_buffer.text += '- ' + command
 
     def periodic_update(self):
         """
-            periodic_update this method responsible for looping through the operation and what needed in next
-            iteration. it's the state-machine method.
+        Background thread: polls the serial device, processes state flags,
+        and updates the UI buffers.
         """
         global CLEAR_LOG
         global OUTPUT_LOG
@@ -378,99 +362,145 @@ class GuiController:
         global SEND_COMMAND
         global TAB_PRESSED
         global SHOW_HELP
-        global BACKSPACK_PRESSED
+        global BACKSPACE_PRESSED
+        global HISTORY_UP
+        global HISTORY_DOWN
+        global CLEAR_SEARCH
 
         while UPDATE_LOG_FLAG:
-            # first iteration? check if the device is still connected.
+            # ── Device disconnect check ───────────────────────────────────
             if not exists(self.serial_dev_path) and not self.simulator_mode:
                 UPDATE_LOG_FLAG = False
                 msg = f"ERROR: {self.serial_dev_path} is not connected."
-                self.right_buffer.text += '\n'
-                self.right_buffer.text += "-" * len(msg)
-                self.right_buffer.text += "\n"
-                self.right_buffer.text += msg
-                self.right_buffer.text += "\n"
-                self.right_buffer.text += "-" * len(msg)
-                # todo raise an exception
-                sys.exit(1)
+                separator = "-" * len(msg)
+                self.right_buffer.text += f"\n{separator}\n{msg}\n{separator}\n"
+                get_app().exit()
+                return
 
-            # update the status
+            # ── Status bar ───────────────────────────────────────────────
             self.status_buffer.reset()
             self.status_buffer.text = self.get_status_text()
 
-            # if the user requested the license
+            # ── License display ──────────────────────────────────────────
             if LICENSE:
-                # open text file in read mode
-                with open("LICENSE", "r", encoding='UTF-8') as file:
-                    # read whole license to a string
-                    UPDATE_LOG_FLAG = False
-                    data = file.read()
-                    # close file
-                    file.close()
+                UPDATE_LOG_FLAG = False
+                try:
+                    license_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'LICENSE')
+                    with open(license_path, "r", encoding='UTF-8') as file:
+                        data = file.read()
                     self.right_buffer.text += str(data)
                     self.right_buffer.text += "\n\nPlease close the program and re-open.\n\n"
+                except FileNotFoundError:
+                    self.right_buffer.text += "\n[LICENSE file not found]\n"
 
-            # if the user requested the help string
+            # ── Help display ─────────────────────────────────────────────
             if SHOW_HELP:
                 SHOW_HELP = False
-                # open text file in read mode
-                with open("HELP", "r", encoding='UTF-8') as file:
-                    # read whole license to a string
-                    data = file.read()
-                    # close file
-                    file.close()
-                    self.right_buffer.text += ('\n\n' + str(data) + '\n\n')
-            # if the user wanted to remove last char
-            if BACKSPACK_PRESSED:
+                try:
+                    help_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'HELP')
+                    with open(help_path, "r", encoding='UTF-8') as file:
+                        data = file.read()
+                    self.right_buffer.text += f"\n\n{data}\n\n"
+                except FileNotFoundError:
+                    self.right_buffer.text += "\n[HELP file not found]\n"
+
+            # ── Backspace: remove last char from inserted_command ────────
+            if BACKSPACE_PRESSED:
                 if self.application.layout.current_control == self.right_window.content:
                     self.inserted_command = self.inserted_command[:-1]
                 else:
                     self.search_buffer.text = self.search_buffer.text[:-1]
                     self.search_input = self.search_input[:-1]
                     HIGHLIGHT_STRING = HIGHLIGHT_STRING[:-1]
-                BACKSPACK_PRESSED = not BACKSPACK_PRESSED
+                BACKSPACE_PRESSED = False
 
-            # if the user pressed on TAB (auto-complete?)
+            # ── Clear search: reset search field and modes ───────────────
+            if CLEAR_SEARCH:
+                HIGHLIGHT = False
+                HIGHLIGHT_STOP = False
+                HIGHLIGHT_STRING = ""
+                self.search_buffer.text = ""
+                self.search_input = ""
+                CLEAR_SEARCH = False
+
+            # ── Tab: send a literal tab character (autocomplete) ─────────
             if TAB_PRESSED:
                 self.send_command(self.inserted_command + "\t")
                 TAB_PRESSED = False
 
-            # Command is ready to the serial device. Command will be executed.
-            # todo remove the signal command with sending each char entered?
+            # ── History navigation ────────────────────────────────────────
+            if HISTORY_UP:
+                HISTORY_UP = False
+                if self.command_history:
+                    self.history_index = min(self.history_index + 1,
+                                             len(self.command_history) - 1)
+                    new_cmd = self.command_history[-(self.history_index + 1)]
+                    if self.inserted_command:
+                        self.right_buffer.text = self.right_buffer.text[:-len(self.inserted_command)]
+                    self.inserted_command = new_cmd
+                    self.right_buffer.text += new_cmd
+
+            if HISTORY_DOWN:
+                HISTORY_DOWN = False
+                if self.history_index > 0:
+                    self.history_index -= 1
+                    new_cmd = self.command_history[-(self.history_index + 1)]
+                    if self.inserted_command:
+                        self.right_buffer.text = self.right_buffer.text[:-len(self.inserted_command)]
+                    self.inserted_command = new_cmd
+                    self.right_buffer.text += new_cmd
+                elif self.history_index == 0:
+                    self.history_index = -1
+                    if self.inserted_command:
+                        self.right_buffer.text = self.right_buffer.text[:-len(self.inserted_command)]
+                    self.inserted_command = ""
+
+            # ── Send command ─────────────────────────────────────────────
             if SEND_COMMAND:
-                # self.right_buffer.text += "\n"
-                self.send_command(self.inserted_command + "\n")
+                cmd = self.inserted_command
+                self.send_command(cmd + "\n")
+                if cmd.strip():
+                    self.command_history.append(cmd.strip())
+                    self._save_history()
+                self.history_index = -1
                 self.inserted_command = ""
                 SEND_COMMAND = False
 
-            # If user want to clear the log
+            # ── Clear log ────────────────────────────────────────────────
             if CLEAR_LOG:
                 self.right_buffer.reset()
+                OUTPUT_LOG = ""
                 CLEAR_LOG = False
 
-            # if the user requested to stop the logging?
+            # ── Incoming serial / simulator data ─────────────────────────
             if not PAUSE_LOGGING:
-                # if simulator mode then get the next packet from simulator object.
                 if self.simulator_mode:
                     incoming_packet = random_text_generator()
                     time.sleep(0.2)
                 else:
-                    # perform serial read
                     incoming_packet = self.ser_dev.read()
-                    # if nothing came from the serial object we force the packet to be str and empty
                     if incoming_packet is None:
                         incoming_packet = ""
-                # check the incoming packet for a search and search stop feature.
-                self.check_incoming_packet(incoming_packet)
-                # append the incoming packet to the output log
-                self.right_buffer.text += incoming_packet.replace('\r', '').replace('^M', '').replace('\b', '') \
-                    .replace('\t', '')
-                # update the output_log for exporting if needed.
+
+                already_displayed = self.check_incoming_packet(incoming_packet)
+                if not already_displayed:
+                    self.right_buffer.text += (
+                        incoming_packet
+                        .replace('\r', '')
+                        .replace('^M', '')
+                        .replace('\b', '')
+                        .replace('\t', '')
+                    )
                 OUTPUT_LOG = self.right_buffer.text
 
-    def check_incoming_packet(self, incoming_packet):
+    def check_incoming_packet(self, incoming_packet) -> bool:
         """
-        Check the log for any matching conditions
+        Apply search highlighting, stop-on-match, and capture logic
+        to each incoming packet.
+
+        Returns True if the packet was already written to the buffer in
+        highlighted form, so the caller should skip the raw append.
+        Returns False when the caller should append the raw packet itself.
         """
         global HIGHLIGHT
         global HIGHLIGHT_STRING
@@ -481,115 +511,135 @@ class GuiController:
         global CAPTURE_MSG_FLAG
         global CAPTURE_LOG_FILE_COUNTER
 
-        # if search and search string is set then check if input string pattern found.
+        if not incoming_packet:
+            return False
+
+        displayed = False
+
+        # ── Highlight search ──────────────────────────────────────────────
         if HIGHLIGHT and HIGHLIGHT_STRING:
             found = incoming_packet.find(HIGHLIGHT_STRING)
-            if found > 0:
-                # '\x1b[6;30;42m' + + '\x1b[0m'
-                raw_log = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\x1b[6;30;42m' + '\0\0' + \
-                          incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + '\x1b[0m' + \
-                          incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
-                self.right_buffer.text += raw_log
+            if found >= 0:
+                highlighted = (
+                    '\n\n\n-->FOUND\n'
+                    + incoming_packet[:found]
+                    + '\x1b[6;30;42m'
+                    + incoming_packet[found:found + len(HIGHLIGHT_STRING)]
+                    + '\x1b[0m'
+                    + incoming_packet[found + len(HIGHLIGHT_STRING):]
+                    + '\n\n\n'
+                )
+                self.right_buffer.text += highlighted
+                displayed = True
 
-        # if search stop and search string is set then check if input string pattern found.
+        # ── Search and stop ───────────────────────────────────────────────
         if HIGHLIGHT_STOP and HIGHLIGHT_STRING:
             found = incoming_packet.find(HIGHLIGHT_STRING)
-            if found > 0:
-                raw_log = '\n\n\n-->FOUND\n' + incoming_packet[0:found] + '\x1b[6;30;42m' + '\0\0' + \
-                          incoming_packet[found:found + len(HIGHLIGHT_STRING)] + '\0\0' + '\x1b[0m' + \
-                          incoming_packet[found + len(HIGHLIGHT_STRING):-1] + '\n\n\n'
-                self.right_buffer.text += raw_log
+            if found >= 0:
+                highlighted = (
+                    '\n\n\n-->FOUND\n'
+                    + incoming_packet[:found]
+                    + '\x1b[6;30;42m'
+                    + incoming_packet[found:found + len(HIGHLIGHT_STRING)]
+                    + '\x1b[0m'
+                    + incoming_packet[found + len(HIGHLIGHT_STRING):]
+                    + '\n\n\n'
+                )
+                self.right_buffer.text += highlighted
+                displayed = True
                 UPDATE_LOG_FLAG = False
 
-        # If capture is enabled then let's start log/save any upcoming packets.
+        # ── Capture ───────────────────────────────────────────────────────
         if CAPTURE:
             CAPTURE_LOG += incoming_packet
             if not CAPTURE_MSG_FLAG:
-                self.right_buffer.text += "\n\n------------------------Capture-Started------------------------\n"
+                self.right_buffer.text += \
+                    "\n\n------------------------Capture-Started------------------------\n"
                 CAPTURE_MSG_FLAG = True
+
         if not CAPTURE and CAPTURE_MSG_FLAG:
-            with open(f'Capture_log{CAPTURE_LOG_FILE_COUNTER}.txt', 'w', encoding='UTF-8') as file:
+            filename = f'Capture_log{CAPTURE_LOG_FILE_COUNTER}.txt'
+            capture_path = os.path.join(self.session_cwd, filename)
+            try:
+                with open(capture_path, 'w', encoding='UTF-8') as file:
+                    file.write(CAPTURE_LOG)
                 CAPTURE_LOG_FILE_COUNTER += 1
-                file.write(CAPTURE_LOG)
-                self.right_buffer.text += "\n\n------------------------Capture-Stopped------------------------\n"
+                self.right_buffer.text += (
+                    f"\n\n--- Capture saved → {filename} ---\n\n"
+                )
+            except OSError as err:
+                self.right_buffer.text += f"\n\n--- Capture save failed: {err} ---\n\n"
             CAPTURE_LOG = ""
             CAPTURE_MSG_FLAG = False
 
+        return displayed
+
+
+# ── Key bindings ──────────────────────────────────────────────────────────────
 
 @kb.add("c-q", eager=True)
 def _(event):
-    """
-    Pressing Ctrl-Q will exit the user interface.
-    """
+    """Ctrl+Q — quit"""
     global UPDATE_LOG_FLAG  # pylint: disable=global-statement
     UPDATE_LOG_FLAG = False
-    CustomProgressBar("Existing", 100)
+    CustomProgressBar("Exiting", 100)
     event.app.exit()
 
 
 @kb.add("c-x", eager=True)
 def _(_):
-    """
-    Pressing Ctrl-X Clear the log
-    """
+    """Ctrl+X — clear log"""
     global CLEAR_LOG  # pylint: disable=global-statement
     CLEAR_LOG = True
 
 
 @kb.add("c-s", eager=True)
 def _(_):
-    """
-    Pressing Ctrl-S Save the log in file
-    """
-    global OUTPUT_LOG  # pylint: disable=global-statement,W0602
+    """Ctrl+S — save log to file in the current working directory"""
+    global OUTPUT_LOG        # pylint: disable=global-statement,W0602
     global LOG_FILE_COUNTER  # pylint: disable=global-statement
-    with open(f'OUTPUT_LOG{LOG_FILE_COUNTER}.txt', 'w', encoding='UTF-8') as file:
+    filename = f'OUTPUT_LOG{LOG_FILE_COUNTER}.txt'
+    out_path = os.path.join(os.getcwd(), filename)
+    try:
+        with open(out_path, 'w', encoding='UTF-8') as file:
+            file.write(OUTPUT_LOG)
         LOG_FILE_COUNTER += 1
-        file.write(OUTPUT_LOG)
+    except OSError:
+        pass
 
 
 @kb.add("c-c", eager=True)
 def _(_):
-    """
-    Pressing Ctrl-C Copy log to clipboard
-    """
+    """Ctrl+C — copy log to clipboard"""
     global OUTPUT_LOG  # pylint: disable=global-statement,W0602
     pyperclip.copy(OUTPUT_LOG)
 
 
 @kb.add("c-w", eager=True)
 def _(_):
-    """
-    Pressing Ctrl-W Start/Stop the capture feature
-    """
+    """Ctrl+W — toggle capture"""
     global CAPTURE  # pylint: disable=global-statement,W0602
     CAPTURE = not CAPTURE
 
 
 @kb.add("c-l", eager=True)
 def _(_):
-    """
-    Pressing Ctrl-L Show license
-    """
+    """Ctrl+L — show license"""
     global LICENSE  # pylint: disable=global-statement,W0602
     LICENSE = True
 
 
 @kb.add("c-m", eager=True)
 def _(_):
-    """
-    Pressing [Enter] Command entered
-    """
+    """Enter — submit command"""
     global SEND_COMMAND  # pylint: disable=global-statement,W0602
     SEND_COMMAND = True
 
 
 @kb.add("s-tab", eager=True)
 def _(_):
-    """
-    Pressing Shift-Tab Enter Debug Mode
-    """
-    global DEBUG_MODE  # pylint: disable=global-statement,W0602
+    """Shift+Tab — toggle debug mode"""
+    global DEBUG_MODE       # pylint: disable=global-statement,W0602
     global DEBUG_MODE_TEXT  # pylint: disable=global-statement,W0602
     DEBUG_MODE = not DEBUG_MODE
     DEBUG_MODE_TEXT = ''
@@ -597,67 +647,66 @@ def _(_):
 
 @kb.add("c-g", eager=True)
 def _(_):
-    """
-    Pressing Ctrl-G for search and stop
-    """
+    """Ctrl+G — toggle search-and-stop mode"""
     global HIGHLIGHT_STOP  # pylint: disable=global-statement,W0602
-    global HIGHLIGHT_STRING  # pylint: disable=global-statement,W0602
-    if HIGHLIGHT_STRING == '':
-        HIGHLIGHT_STOP = not HIGHLIGHT_STOP
-    else:
-        HIGHLIGHT_STOP = True
+    HIGHLIGHT_STOP = not HIGHLIGHT_STOP
     get_app().layout.focus_next()
     get_app().layout.focus_next()
 
 
 @kb.add("c-f", eager=True)
 def _(_):
-    """
-    Pressing Ctrl-F for search
-    """
+    """Ctrl+F — toggle highlight search mode"""
     global HIGHLIGHT  # pylint: disable=global-statement,W0602
-    global HIGHLIGHT_STRING  # pylint: disable=global-statement,W0602
-    if HIGHLIGHT_STRING == '':
-        HIGHLIGHT = not HIGHLIGHT
-    else:
-        HIGHLIGHT = True
+    HIGHLIGHT = not HIGHLIGHT
     get_app().layout.focus_next()
     get_app().layout.focus_next()
+
+
+@kb.add("c-r", eager=True)
+def _(_):
+    """Ctrl+R — clear search string and disable search modes"""
+    global CLEAR_SEARCH  # pylint: disable=global-statement,W0602
+    CLEAR_SEARCH = True
 
 
 @kb.add("c-i", eager=True)
 def _(_):
-    """
-    Pressing [Tab] to switch to search input field
-    """
+    """Tab — send tab to device (autocomplete attempt)"""
     global TAB_PRESSED  # pylint: disable=global-statement,W0602
     TAB_PRESSED = True
 
 
 @kb.add("c-h", eager=True)
 def _(_):
-    """
-    Pressing [Tab] to switch to search input field
-    """
+    """Ctrl+H — show help"""
     global SHOW_HELP  # pylint: disable=global-statement,W0602
     SHOW_HELP = True
 
 
+@kb.add("backspace", eager=True)
+def _(_):
+    """Backspace — remove last character from the active input"""
+    global BACKSPACE_PRESSED  # pylint: disable=global-statement,W0602
+    BACKSPACE_PRESSED = True
+
+
 @kb.add("c-p", eager=True)
 def _(_):
-    """
-    Pressing+P to pause the incoming output log
-    """
+    """Ctrl+P — pause / resume incoming log"""
     global PAUSE_LOGGING  # pylint: disable=global-statement,W0602
-    global UPDATE_LOG_FLAG  # pylint: disable=global-statement,W0602
     PAUSE_LOGGING = not PAUSE_LOGGING
-    UPDATE_LOG_FLAG = not PAUSE_LOGGING
 
 
-@kb.add("c-h", eager=True)
+@kb.add("up", eager=True)
 def _(_):
-    """
-    Backspace is pressed when user is deleting last char
-    """
-    global BACKSPACK_PRESSED  # pylint: disable=global-statement,W0602
-    BACKSPACK_PRESSED = not BACKSPACK_PRESSED
+    """Up arrow — scroll back through command history"""
+    global HISTORY_UP  # pylint: disable=global-statement,W0602
+    HISTORY_UP = True
+
+
+@kb.add("down", eager=True)
+def _(_):
+    """Down arrow — scroll forward through command history"""
+    global HISTORY_DOWN  # pylint: disable=global-statement,W0602
+    HISTORY_DOWN = True

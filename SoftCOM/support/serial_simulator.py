@@ -3,10 +3,14 @@
     Serial Simulator
     mainly used for testing without hardware.
 """
+import os
 import random
 
-lines = open('/Users/mathyossarkiss/Personal/SoftCOM/SoftCOM/support/test_log.txt',
-             encoding='UTF-8').read().splitlines()  # pylint: disable=R1732
+_dir = os.path.dirname(os.path.realpath(__file__))
+_log_path = os.path.join(_dir, 'test_log.txt')
+
+with open(_log_path, encoding='UTF-8') as _f:
+    lines = _f.read().splitlines()
 
 
 def get_random_string():

@@ -1,3 +1,3 @@
 [build-system]
-requires = ["setuptools", "wheel", "argparse", "prompt_toolkit", "Pygments", "serial"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"

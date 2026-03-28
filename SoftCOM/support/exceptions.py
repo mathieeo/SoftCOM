@@ -7,4 +7,4 @@ class SerialDeviceOpenError(Exception):
     """Raised serial device failed to open"""
 
     def __init__(self):
-        super().__init__('Checksum error.')
+        super().__init__('Failed to open serial device.')
