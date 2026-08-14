@@ -6,10 +6,10 @@ import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'SoftCOM'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from support.serial_simulator import (get_random_string, lines,
-                                      random_text_generator)
+from SoftCOM.support.serial_simulator import (get_random_string, lines,
+                                              random_text_generator)
 
 
 class TestSerialSimulator:

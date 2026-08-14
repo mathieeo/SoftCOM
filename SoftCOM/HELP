@@ -1,0 +1,27 @@
+
+SoftCOM — key bindings
+
+|       Option        |    Key     |                        Description                         |
+|:-------------------:|:----------:|:----------------------------------------------------------:|
+|        Quit         | Control+Q  |                    Quit the application                    |
+|      Clear Log      | Control+X  |                   Clear the output log                     |
+|   Pause / Resume    | Control+P  |                 Freeze / resume the log                    |
+|     Export Log      | Control+S  |         Save the output log to a file (no overwrite)       |
+| Start/Stop Capture  | Control+W  |    Capture incoming data; stopping writes the file now     |
+|   Send Interrupt    | Control+C  |          Send ^C to the device (stop a command)            |
+|      Send EOF       | Control+D  |            Send ^D to the device (end input)               |
+| Copy to Clipboard   | Control+Y  |           Copy the entire log to the clipboard             |
+|    Clear Input      | Control+K  |                  Clear the input bar                       |
+|       Search        | Control+F  |     Open/close search; Enter = next match, Esc = close     |
+|     Timestamps      | Control+T  |          Toggle [HH:MM:SS] on incoming lines               |
+|     Line Ending     | Control+N  |     Cycle what Enter appends: NONE / LF / CR / CRLF        |
+|     Local Echo      | Control+O  |        Echo the commands you send into the log             |
+|    Show License     | Control+L  |            Show the license in the output log              |
+|        Help         |     F1     |               Show this help in the log                    |
+|    Autocomplete     |    Tab     |         Send Tab to the device for shell completion        |
+|      History        |   Up/Down  |          Recall an older / newer typed command             |
+|       Scroll        | PgUp/PgDn  |     Scroll back/forward through the log (freezes follow)    |
+|   Jump to Live      | Control+E  |         Jump to the bottom and resume following            |
+
+Type a command in the input bar and press Enter to send it.
+Note: Help is F1, not Control+H — in this terminal Control+H is Backspace.

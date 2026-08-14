@@ -7,10 +7,10 @@ import tempfile
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'SoftCOM'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Patch the history file path before importing gui_controller
-import gui_controller as gc
+import SoftCOM.gui_controller as gc
 
 
 @pytest.fixture(autouse=True)

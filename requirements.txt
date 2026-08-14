@@ -3,8 +3,7 @@ build
 isort
 pre-commit
 prompt_toolkit
-Pygments~=2.11.2
 pylint
 pyperclip
+pyserial~=3.5
 pytest==7.1.1
-serial~=0.0.97
